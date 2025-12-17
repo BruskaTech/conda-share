@@ -9,10 +9,8 @@ fn main() -> anyhow::Result<()> {
     let output_path = Path::new("env.yml");
 
     let conda_env = good_export_env(env_name)?;
-    let yml = conda_env_to_yml(&conda_env)?;
 
-    let mut file = File::create(output_path)?;
-    file.write_all(yml.as_bytes())?;
+    conda_env.save(output_path)?;
     println!("Generated {}", output_path.display());
 
     Ok(())
@@ -26,38 +24,45 @@ struct CondaEnv {
     pip_deps: Vec<CondaPackage>,
 }
 
+impl CondaEnv {
+    fn to_yaml(&self) -> anyhow::Result<String> {
+        let mut yml = String::new();
+        yml.push_str(&format!("name: {}\n", self.name));
+
+        yml.push_str("channels:\n");
+        yml.extend(self.channels.iter().map(|c| format!("  - {}\n", c)));
+        if !self.conda_deps.is_empty() {
+            yml.push_str("dependencies:\n");
+            for dep in &self.conda_deps {
+                let version = dep.version.clone().ok_or(anyhow::anyhow!("Missing version"))?;
+                yml.push_str(&format!("  - {}={}\n", dep.name, version));
+            }
+        }
+
+        if !self.pip_deps.is_empty() {
+            yml.push_str("  - pip:\n");
+            for dep in &self.pip_deps {
+                let version = dep.version.clone().ok_or(anyhow::anyhow!("Missing version"))?;
+                yml.push_str(&format!("      - {}=={}\n", dep.name, version));
+            }
+        }
+
+        Ok(yml)
+    }
+    fn save(&self, path: &Path) -> anyhow::Result<()> {
+        let yml = self.to_yaml()?;
+        let mut file = File::create(path)?;
+        file.write_all(yml.as_bytes())?;
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 struct CondaPackage {
     name: String,
     version: Option<String>,
     build: Option<String>,
     channel: Option<String>,
-}
-
-fn conda_env_to_yml(conda_env: &CondaEnv) -> anyhow::Result<String> {
-    let mut yml = String::new();
-    yml.push_str(&format!("name: {}\n", conda_env.name));
-
-    yml.push_str("channels:\n");
-    yml.extend(conda_env.channels.iter().map(|c| format!("  - {}\n", c)));
-
-    if !conda_env.conda_deps.is_empty() {
-        yml.push_str("dependencies:\n");
-        for dep in &conda_env.conda_deps {
-            let version = dep.version.clone().ok_or(anyhow::anyhow!("Missing version"))?;
-            yml.push_str(&format!("  - {}={}\n", dep.name, version));
-        }
-    }
-
-    if !conda_env.pip_deps.is_empty() {
-        yml.push_str("  - pip:\n");
-        for dep in &conda_env.pip_deps {
-            let version = dep.version.clone().ok_or(anyhow::anyhow!("Missing version"))?;
-            yml.push_str(&format!("      - {}=={}\n", dep.name, version));
-        }
-    }
-
-    Ok(yml)
 }
 
 fn good_export_env(env_name: &str) -> anyhow::Result<CondaEnv> {
