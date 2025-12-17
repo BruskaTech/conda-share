@@ -1,59 +1,91 @@
 use std::path::Path;
 use std::process::Command;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Write;
 
 fn main() -> anyhow::Result<()> {
-    let env = "test_env";
+    let env_name = "test_env";
     let output_path = Path::new("env.yml");
 
-    let (_, _, conda_export_from_history) = conda_env_export_from_history(env, true)?;
-    let (name, channels, _) = conda_env_export_from_history(env, false)?;
-
-    let conda_list = conda_list(env)?;
-
-    let mut conda_deps: Vec<String> = Vec::new();
-    let mut pip_deps: Vec<String> = Vec::new();
-    for entry in &conda_list {
-        let deps_from_history: Vec<&str> = conda_export_from_history.iter().map(|e| e.name.as_str()).collect();
-        if deps_from_history.contains(&entry.name.as_str()) {
-            conda_deps.push(format!("{}={}", entry.name, entry.version));
-            // println!("Found matching package: {} {} {} {}", entry.name, entry.version, entry.build, entry.channel);
-        }
-        if entry.channel == "pypi" {
-            pip_deps.push(format!("{}=={}", entry.name, entry.version));
-        }
-    }
-    println!("Env Name: {}", name);
-    println!("Channels: {:?}", channels);
-    println!("Conda Deps: {:?}", conda_deps);
-    println!("Pip Deps: {:?}", pip_deps);
-
-    let mut yml = String::new();
-    yml.push_str(&format!("name: {}\n", name));
-
-    yml.push_str("channels:\n");
-    yml.extend(channels.iter().map(|c| format!("  - {}\n", c)));
-
-    if !conda_deps.is_empty() {
-        yml.push_str("dependencies:\n");
-        yml.extend(conda_deps.iter().map(|dep| format!("  - {}\n", dep)));
-    }
-
-    if !pip_deps.is_empty() {
-        yml.push_str("  - pip:\n");
-        yml.extend(pip_deps.iter().map(|dep| format!("    - {}\n", dep)));
-    }
+    let conda_env = good_export_env(env_name)?;
+    let yml = conda_env_to_yml(&conda_env)?;
 
     let mut file = File::create(output_path)?;
     file.write_all(yml.as_bytes())?;
-    println!("Generated env.yml");
+    println!("Generated {}", output_path.display());
 
     Ok(())
 }
 
-fn conda_env_export_from_history(env_name: &str, from_history: bool) -> anyhow::Result<(String, Vec<String>, Vec<CondaListEntry>)> {
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+struct CondaEnv {
+    name: String,
+    channels: Vec<String>,
+    conda_deps: Vec<CondaPackage>,
+    pip_deps: Vec<CondaPackage>,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+struct CondaPackage {
+    name: String,
+    version: Option<String>,
+    build: Option<String>,
+    channel: Option<String>,
+}
+
+fn conda_env_to_yml(conda_env: &CondaEnv) -> anyhow::Result<String> {
+    let mut yml = String::new();
+    yml.push_str(&format!("name: {}\n", conda_env.name));
+
+    yml.push_str("channels:\n");
+    yml.extend(conda_env.channels.iter().map(|c| format!("  - {}\n", c)));
+
+    if !conda_env.conda_deps.is_empty() {
+        yml.push_str("dependencies:\n");
+        for dep in &conda_env.conda_deps {
+            let version = dep.version.clone().ok_or(anyhow::anyhow!("Missing version"))?;
+            yml.push_str(&format!("  - {}={}\n", dep.name, version));
+        }
+    }
+
+    if !conda_env.pip_deps.is_empty() {
+        yml.push_str("  - pip:\n");
+        for dep in &conda_env.pip_deps {
+            let version = dep.version.clone().ok_or(anyhow::anyhow!("Missing version"))?;
+            yml.push_str(&format!("      - {}=={}\n", dep.name, version));
+        }
+    }
+
+    Ok(yml)
+}
+
+fn good_export_env(env_name: &str) -> anyhow::Result<CondaEnv> {
+    let conda_env_from_history = conda_env_export(env_name, true)?;
+    let conda_env_export = conda_env_export(env_name, false)?;
+    let conda_list = conda_list(env_name)?;
+
+    let name = conda_env_export.name;
+    let channels = conda_env_export.channels;
+    let mut conda_deps: Vec<CondaPackage> = Vec::new();
+    let mut pip_deps: Vec<CondaPackage> = Vec::new();
+    for package in &conda_list {
+        let conda_deps_from_history: Vec<&str> = conda_env_from_history.conda_deps
+            .iter()
+            .map(|e| e.name.as_str())
+            .collect();
+        if conda_deps_from_history.contains(&package.name.as_str()) {
+            conda_deps.push(package.clone());
+        }
+        if package.channel.as_deref() == Some("pypi") {
+            pip_deps.push(package.clone());
+        }
+    }
+
+    Ok(CondaEnv { name, channels, conda_deps, pip_deps })
+}
+
+fn conda_env_export(env_name: &str, from_history: bool) -> anyhow::Result<CondaEnv> {
     let args = if from_history {
         vec!["env", "export", "--from-history", "-n", env_name]
     } else {
@@ -82,27 +114,24 @@ fn conda_env_export_from_history(env_name: &str, from_history: bool) -> anyhow::
     // dependencies can be strings or maps (for pip), so filter only string ones for conda deps
     let dependencies = parsed.dependencies.iter()
         .filter_map(|dep| dep.as_str().map(|s| {
-            CondaListEntry {
-                name: s.split('=').next().unwrap_or("").to_string(),
-                version: "".to_string(),
-                build: "".to_string(),
-                channel: "".to_string(),
-            }
+            let mut parts = s.split("=");
+            let name = parts.next().unwrap_or("").to_string();
+            let version = parts.next().map(|s| s.to_string());
+            let build = parts.next().map(|s| s.to_string());
+            let channel = None;
+            CondaPackage { name, version, build, channel }
         }))
         .collect();
 
-    Ok((parsed.name, parsed.channels, dependencies))
+    Ok(CondaEnv {
+        name: parsed.name,
+        channels: parsed.channels,
+        conda_deps: dependencies,
+        pip_deps: Vec::new()
+    })
 }
 
-#[derive(Debug)]
-struct CondaListEntry {
-    name: String,
-    version: String,
-    build: String,
-    channel: String,
-}
-
-fn conda_list(env_name: &str) -> anyhow::Result<Vec<CondaListEntry>> {
+fn conda_list(env_name: &str) -> anyhow::Result<Vec<CondaPackage>> {
     let output = Command::new("conda")
         .args(["list", "-n", env_name, "--json"])
         .output()?;
@@ -114,49 +143,16 @@ fn conda_list(env_name: &str) -> anyhow::Result<Vec<CondaListEntry>> {
         );
     }
 
-    #[derive(Deserialize)]
-    struct RawEntry {
-        name: String,
-        version: String,
-        build_string: String,
-        channel: Option<String>,
-    }
-
-    let raw: Vec<RawEntry> = serde_json::from_slice(&output.stdout)?;
-    let entries = raw
+    let raw: Vec<CondaPackage> = serde_json::from_slice(&output.stdout)?;
+    let packages = raw
         .into_iter()
-        .map(|e| CondaListEntry {
+        .map(|e| CondaPackage {
             name: e.name,
             version: e.version,
-            build: e.build_string,
-            channel: e.channel.unwrap_or_default(),
+            build: e.build,
+            channel: e.channel,
         })
         .collect();
 
-    Ok(entries)
+    Ok(packages)
 }
-
-// fn conda_list(prefix: &Path) -> anyhow::Result<Vec<PrefixRecord>> {
-//     let meta_dir = prefix.join("conda-meta");
-
-//     let mut records = Vec::new();
-//     for entry in fs::read_dir(meta_dir)? {
-//         let entry = entry?;
-//         if entry.file_name() == "history" { continue; }
-//         let path = entry.path();
-//         println!("Found file: {:?}", path);
-
-
-//         let record = PrefixRecord::from_path(path)?;
-//         println!("{}", record.name().as_normalized());
-//         // return Ok(vec![record]);
-
-//         // if path.extension().and_then(|s| s.to_str()) == Some("json") {
-//         //     let data = fs::read(&path)?;
-//         //     let record: PrefixRecord = serde_json::from_slice(&data)?;
-//         //     records.push(record);
-//         // }
-//     }
-
-//     Ok(records)
-// }
