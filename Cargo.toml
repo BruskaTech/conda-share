@@ -1,0 +1,13 @@
+[package]
+name = "cexport"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.100"
+clap = "4.5.53"
+rattler = "0.39.6"
+rattler_conda_types = "0.42.3"
+serde = "1.0.228"
+serde_json = "1.0.145"
+serde_yaml = "0.9.34"
