@@ -1,9 +1,11 @@
-use std::path::Path;
-use std::process::Command;
-use serde::{Deserialize, Serialize};
-use std::fs::File;
 use std::io::Write;
-use clap::{Parser};
+use std::path::Path;
+use std::process::{Command, Output};
+use std::ffi::OsStr;
+use std::fs::File;
+use anyhow::Context;
+use clap::Parser;
+use serde::{Deserialize, Serialize};
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -20,11 +22,18 @@ struct Args {
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
-    let conda_env = good_export_env(&args.env_name)?;
+    // Check if the conda environment exists
+    let available_envs = conda_env_list()?;
+    if !available_envs.contains(&args.env_name) {
+        anyhow::bail!("Conda environment '{}' does not exist. Available environments: {:?}", args.env_name, available_envs);
+    }
+
+    // Generate the conda sharable environment
+    let sharable_conda_env = sharable_export_env(&args.env_name)?;
 
     let file_path = format!("{}{}", args.prefix.as_deref().unwrap_or(&args.env_name), ".yml");
     let output_path = Path::new(&file_path);
-    conda_env.save(output_path)?;
+    sharable_conda_env.save(output_path)?;
     println!("Generated {}", output_path.display());
 
     Ok(())
@@ -79,7 +88,7 @@ struct CondaPackage {
     channel: Option<String>,
 }
 
-fn good_export_env(env_name: &str) -> anyhow::Result<CondaEnv> {
+fn sharable_export_env(env_name: &str) -> anyhow::Result<CondaEnv> {
     let conda_env_from_history = conda_env_export(env_name, true)?;
     let conda_env_export = conda_env_export(env_name, false)?;
     let conda_list = conda_list(env_name)?;
@@ -104,6 +113,13 @@ fn good_export_env(env_name: &str) -> anyhow::Result<CondaEnv> {
     Ok(CondaEnv { name, channels, conda_deps, pip_deps })
 }
 
+#[derive(Debug, Deserialize)]
+struct CondaEnvExportYaml {
+    name: String,
+    channels: Vec<String>,
+    dependencies: Vec<serde_yaml::Value>,
+}
+
 fn conda_env_export(env_name: &str, from_history: bool) -> anyhow::Result<CondaEnv> {
     let args = if from_history {
         vec!["env", "export", "--from-history", "-n", env_name]
@@ -111,24 +127,10 @@ fn conda_env_export(env_name: &str, from_history: bool) -> anyhow::Result<CondaE
         vec!["env", "export", "-n", env_name]
     };
 
-    let output = Command::new("conda").args(&args).output()?;
-
-    if !output.status.success() {
-        anyhow::bail!(
-            "conda env export failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-
-    #[derive(Debug, Deserialize)]
-    struct CondaEnvExport {
-        name: String,
-        channels: Vec<String>,
-        dependencies: Vec<serde_yaml::Value>,
-    }
+    let output = conda_command(args)?;
 
     let yaml = String::from_utf8_lossy(&output.stdout);
-    let parsed: CondaEnvExport = serde_yaml::from_str(&yaml)?;
+    let parsed: CondaEnvExportYaml = serde_yaml::from_str(&yaml)?;
 
     // dependencies can be strings or maps (for pip), so filter only string ones for conda deps
     let dependencies = parsed.dependencies.iter()
@@ -151,16 +153,7 @@ fn conda_env_export(env_name: &str, from_history: bool) -> anyhow::Result<CondaE
 }
 
 fn conda_list(env_name: &str) -> anyhow::Result<Vec<CondaPackage>> {
-    let output = Command::new("conda")
-        .args(["list", "-n", env_name, "--json"])
-        .output()?;
-
-    if !output.status.success() {
-        anyhow::bail!(
-            "conda list failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
+    let output = conda_command(["list", "-n", env_name, "--json"])?;
 
     let raw: Vec<CondaPackage> = serde_json::from_slice(&output.stdout)?;
     let packages = raw
@@ -174,4 +167,46 @@ fn conda_list(env_name: &str) -> anyhow::Result<Vec<CondaPackage>> {
         .collect();
 
     Ok(packages)
+}
+
+fn conda_command<I, S>(args: I) -> anyhow::Result<Output>
+where 
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+    std::string::String: From<S>,
+{
+    let mut command = Command::new("conda");
+    let command = command.args(args);
+    let output = command.output()
+        .with_context(|| format!("Failed to execute conda command. This likely means it can't find the 'conda' executable in your PATH."))?;
+
+    if !output.status.success() {
+        anyhow::bail!(
+            "conda command failed (conda {}): {}",
+            command.get_args().map(|s| s.to_string_lossy()).collect::<Vec<_>>().join(" "),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    Ok(output)
+}
+
+fn conda_env_list() -> anyhow::Result<Vec<String>> {
+    let output = conda_command(["env", "list"])?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let envs: Vec<String> = stdout
+        .lines()
+        .filter_map(|line| {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 2 && parts[0] != "#" {
+                Some(parts[0].to_string())
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    Ok(envs)
+
 }

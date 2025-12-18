@@ -1,6 +1,6 @@
 [package]
-name = "cexport"
-version = "0.1.0"
+name = "conda-share"
+version = "1.0.0"
 edition = "2024"
 
 [dependencies]
