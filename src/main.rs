@@ -3,13 +3,27 @@ use std::process::Command;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Write;
+use clap::{Parser};
+
+/// Simple program to greet a person
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    // Conda environment name
+    env_name: String,
+
+    /// The path of output file
+    #[arg(short, long)]
+    prefix: Option<String>,
+}
 
 fn main() -> anyhow::Result<()> {
-    let env_name = "test_env";
-    let output_path = Path::new("env.yml");
+    let args = Args::parse();
 
-    let conda_env = good_export_env(env_name)?;
+    let conda_env = good_export_env(&args.env_name)?;
 
+    let file_path = format!("{}{}", args.prefix.as_deref().unwrap_or(&args.env_name), ".yml");
+    let output_path = Path::new(&file_path);
     conda_env.save(output_path)?;
     println!("Generated {}", output_path.display());
 
