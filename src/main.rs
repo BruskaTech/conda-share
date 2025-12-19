@@ -16,7 +16,7 @@ struct Args {
 
     /// The path of output file
     #[arg(short, long)]
-    file: Option<String>,
+    path: Option<String>,
 
     /// Display the output to stdout instead of saving to a file
     #[arg(short, long, default_value_t = false)]
@@ -40,7 +40,7 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    let file_path = args.file.unwrap_or(args.env_name + ".yml");
+    let file_path = args.path.unwrap_or(args.env_name + ".yml");
     let output_path = Path::new(&file_path);
     sharable_conda_env.save(output_path)?;
 
