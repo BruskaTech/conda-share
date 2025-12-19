@@ -129,7 +129,7 @@ pub fn conda_env_export(env_name: &str, from_history: bool) -> Result<CondaEnv, 
 
     let output = conda_command(args)?;
 
-    let yaml = String::from_utf8_lossy(&output.stdout);
+    let yaml = String::from_utf8(output.stdout)?;
     let parsed: CondaEnvExportYaml = serde_yaml::from_str(&yaml)?;
 
     let dependencies = parsed.dependencies.iter()
@@ -185,7 +185,7 @@ where
             .map(|s| s.to_string_lossy())
             .collect::<Vec<_>>()
             .join(" ");
-        let err_str = String::from_utf8_lossy(&output.stderr);
+        let err_str = String::from_utf8(output.stderr)?;
         return Err(CondaError::CondaCommandFailed(command_str, err_str.into()));
     }
 
@@ -195,7 +195,7 @@ where
 pub fn conda_env_list() -> Result<Vec<String>, CondaError> {
     let output = conda_command(["env", "list"])?;
 
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = String::from_utf8(output.stdout)?;
     let envs: Vec<String> = stdout
         .lines()
         .filter_map(|line| {
