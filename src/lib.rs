@@ -3,9 +3,28 @@ use std::path::Path;
 use std::process::{Command, Output};
 use std::ffi::OsStr;
 use std::fs::File;
-use anyhow::{Context, Ok, bail};
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
+#[derive(Debug, Error)]
+pub enum CondaError {
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("YAML error: {0}")]
+    Yaml(#[from] serde_yaml::Error),
+    #[error("JSON error: {0}")]
+    Json(#[from] serde_json::Error),
+    #[error("UTF-8 error: {0}")]
+    Utf8(#[from] std::string::FromUtf8Error),
+    #[error("Missing version for package")]
+    MissingVersion,
+    #[error("Environment '{0}' does not exist. Available environments: {1}")]
+    EnvNotFound(String, String),
+    #[error("Conda command failed (conda {0}): {1}")]
+    CondaCommandFailed(String, String),
+    #[error("Failed to execute conda command. This likely means it can't find the 'conda' executable in your PATH. {0}")]
+    CommandExecutionFailed(String),
+}
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct CondaEnv {
@@ -16,7 +35,7 @@ pub struct CondaEnv {
 }
 
 impl CondaEnv {
-    pub fn to_yaml(&self) -> anyhow::Result<String> {
+    pub fn to_yaml(&self) -> Result<String, CondaError> {
         let mut yml = String::new();
         yml.push_str(&format!("name: {}\n", self.name));
 
@@ -25,7 +44,7 @@ impl CondaEnv {
         if !self.conda_deps.is_empty() {
             yml.push_str("dependencies:\n");
             for dep in &self.conda_deps {
-                let version = dep.version.clone().ok_or(anyhow::anyhow!("Missing version"))?;
+                let version = dep.version.clone().ok_or(CondaError::MissingVersion)?;
                 yml.push_str(&format!("  - {}={}\n", dep.name, version));
             }
         }
@@ -33,14 +52,14 @@ impl CondaEnv {
         if !self.pip_deps.is_empty() {
             yml.push_str("  - pip:\n");
             for dep in &self.pip_deps {
-                let version = dep.version.clone().ok_or(anyhow::anyhow!("Missing version"))?;
+                let version = dep.version.clone().ok_or(CondaError::MissingVersion)?;
                 yml.push_str(&format!("      - {}=={}\n", dep.name, version));
             }
         }
 
         Ok(yml)
     }
-    pub fn save(&self, path: &Path) -> anyhow::Result<()> {
+    pub fn save(&self, path: &Path) -> Result<(), CondaError> {
         let yml = self.to_yaml()?;
         let mut file = File::create(path)?;
         file.write_all(yml.as_bytes())?;
@@ -56,10 +75,19 @@ pub struct CondaPackage {
     channel: Option<String>,
 }
 
-pub fn sharable_env(env_name: &str) -> anyhow::Result<CondaEnv> {
+pub fn env_exists(env_name: &str) -> Result<bool, CondaError> {
+    let available_envs = conda_env_list()?;
+    Ok(available_envs.contains(&env_name.to_string()))
+}
+
+pub fn sharable_env(env_name: &str) -> Result<CondaEnv, CondaError> {
     let conda_env_from_history = conda_env_export(env_name, true)?;
     let conda_env_export = conda_env_export(env_name, false)?;
     let conda_list = conda_list(env_name)?;
+
+    if !env_exists(env_name)? {
+        return Err(CondaError::EnvNotFound(env_name.to_string(), format!("{:?}", conda_env_list()?)));
+    }
 
     let name = conda_env_export.name;
     let channels = conda_env_export.channels;
@@ -88,7 +116,11 @@ struct CondaEnvExportYaml {
     dependencies: Vec<serde_yaml::Value>,
 }
 
-pub fn conda_env_export(env_name: &str, from_history: bool) -> anyhow::Result<CondaEnv> {
+pub fn conda_env_export(env_name: &str, from_history: bool) -> Result<CondaEnv, CondaError> {
+    if !env_exists(env_name)? {
+        return Err(CondaError::EnvNotFound(env_name.to_string(), format!("{:?}", conda_env_list()?)));
+    }
+    
     let args = if from_history {
         vec!["env", "export", "--from-history", "-n", env_name]
     } else {
@@ -100,7 +132,6 @@ pub fn conda_env_export(env_name: &str, from_history: bool) -> anyhow::Result<Co
     let yaml = String::from_utf8_lossy(&output.stdout);
     let parsed: CondaEnvExportYaml = serde_yaml::from_str(&yaml)?;
 
-    // dependencies can be strings or maps (for pip), so filter only string ones for conda deps
     let dependencies = parsed.dependencies.iter()
         .filter_map(|dep| dep.as_str().map(|s| {
             let mut parts = s.split("=");
@@ -120,7 +151,7 @@ pub fn conda_env_export(env_name: &str, from_history: bool) -> anyhow::Result<Co
     })
 }
 
-pub fn conda_list(env_name: &str) -> anyhow::Result<Vec<CondaPackage>> {
+pub fn conda_list(env_name: &str) -> Result<Vec<CondaPackage>, CondaError> {
     let output = conda_command(["list", "-n", env_name, "--json"])?;
 
     let raw: Vec<CondaPackage> = serde_json::from_slice(&output.stdout)?;
@@ -137,7 +168,7 @@ pub fn conda_list(env_name: &str) -> anyhow::Result<Vec<CondaPackage>> {
     Ok(packages)
 }
 
-pub fn conda_command<I, S>(args: I) -> anyhow::Result<Output>
+pub fn conda_command<I, S>(args: I) -> Result<Output, CondaError>
 where 
     I: IntoIterator<Item = S>,
     S: AsRef<OsStr>,
@@ -145,8 +176,9 @@ where
 {
     let mut command = Command::new("conda");
     let command = command.args(args);
-    let output = command.output()
-        .with_context(|| format!("Failed to execute conda command. This likely means it can't find the 'conda' executable in your PATH."))?;
+    let output = command.output().map_err(|e| {
+        CondaError::CommandExecutionFailed(format!("{e}"))
+    })?;
 
     if !output.status.success() {
         let command_str = command.get_args()
@@ -154,13 +186,13 @@ where
             .collect::<Vec<_>>()
             .join(" ");
         let err_str = String::from_utf8_lossy(&output.stderr);
-        bail!("conda command failed (conda {command_str}): {err_str}");
+        return Err(CondaError::CondaCommandFailed(command_str, err_str.into()));
     }
 
     Ok(output)
 }
 
-pub fn conda_env_list() -> anyhow::Result<Vec<String>> {
+pub fn conda_env_list() -> Result<Vec<String>, CondaError> {
     let output = conda_command(["env", "list"])?;
 
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -177,5 +209,4 @@ pub fn conda_env_list() -> anyhow::Result<Vec<String>> {
         .collect();
 
     Ok(envs)
-
 }

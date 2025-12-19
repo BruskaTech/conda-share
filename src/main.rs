@@ -1,5 +1,5 @@
 use clap::Parser;
-use anyhow::{Ok, bail};
+use anyhow::Ok;
 use std::path::Path;
 
 use conda_share::*;
@@ -22,12 +22,6 @@ struct Args {
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-
-    // Check if the conda environment exists
-    let available_envs = conda_env_list()?;
-    if !available_envs.contains(&args.env_name) {
-        bail!("Conda environment '{}' does not exist. Available environments: {:?}", args.env_name, available_envs);
-    }
 
     // Generate the conda sharable environment
     let sharable_conda_env = sharable_env(&args.env_name)?;
