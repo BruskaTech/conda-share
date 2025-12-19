@@ -22,3 +22,10 @@ There are other small benefits to using this software
 
 - If you happen to make a typo when writing the environment name, it will tell you if the environment doesn't exist. I'm surprised that the default conda command doesn't error in this situation.
 - You help me get my name out there. :)
+
+## How to Build
+
+1. Install rust [at this website](https://rust-lang.org/tools/install/).
+1. Run `cargo build -r` in this repo.
+1. Copy the `conda-share` executable from `target/release/conda-share` to your normal executable location.
+1. Run it.
