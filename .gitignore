@@ -23,3 +23,6 @@ target
 # Output yaml files
 *.yml
 *.yaml
+
+# MacOS
+.DS_Store

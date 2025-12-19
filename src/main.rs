@@ -3,7 +3,7 @@ use std::path::Path;
 use std::process::{Command, Output};
 use std::ffi::OsStr;
 use std::fs::File;
-use anyhow::Context;
+use anyhow::{Context, Ok, bail};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 
@@ -16,7 +16,11 @@ struct Args {
 
     /// The path of output file
     #[arg(short, long)]
-    prefix: Option<String>,
+    file: Option<String>,
+
+    /// Display the output to stdout instead of saving to a file
+    #[arg(short, long, default_value_t = false)]
+    display: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -25,16 +29,20 @@ fn main() -> anyhow::Result<()> {
     // Check if the conda environment exists
     let available_envs = conda_env_list()?;
     if !available_envs.contains(&args.env_name) {
-        anyhow::bail!("Conda environment '{}' does not exist. Available environments: {:?}", args.env_name, available_envs);
+        bail!("Conda environment '{}' does not exist. Available environments: {:?}", args.env_name, available_envs);
     }
 
     // Generate the conda sharable environment
     let sharable_conda_env = sharable_export_env(&args.env_name)?;
 
-    let file_path = format!("{}{}", args.prefix.as_deref().unwrap_or(&args.env_name), ".yml");
+    if args.display {
+        print!("{}", sharable_conda_env.to_yaml()?);
+        return Ok(());
+    }
+
+    let file_path = args.file.unwrap_or(args.env_name + ".yml");
     let output_path = Path::new(&file_path);
     sharable_conda_env.save(output_path)?;
-    println!("Generated {}", output_path.display());
 
     Ok(())
 }
@@ -181,11 +189,12 @@ where
         .with_context(|| format!("Failed to execute conda command. This likely means it can't find the 'conda' executable in your PATH."))?;
 
     if !output.status.success() {
-        anyhow::bail!(
-            "conda command failed (conda {}): {}",
-            command.get_args().map(|s| s.to_string_lossy()).collect::<Vec<_>>().join(" "),
-            String::from_utf8_lossy(&output.stderr)
-        );
+        let command_str = command.get_args()
+            .map(|s| s.to_string_lossy())
+            .collect::<Vec<_>>()
+            .join(" ");
+        let err_str = String::from_utf8_lossy(&output.stderr);
+        bail!("conda command failed (conda {command_str}): {err_str}");
     }
 
     Ok(output)
