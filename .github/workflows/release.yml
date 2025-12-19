@@ -1,4 +1,6 @@
 # .github/workflows/release.yml
+permissions:
+  contents: write
 
 on:
   release:
