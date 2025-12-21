@@ -2,7 +2,15 @@
 
 Have you ever want to make conda environments sharable? Well this is the package for you!
 
-## Why use conda-share
+After years of waiting for someone to build a tool that exports conda environments that can easily transfer across computers (and operating systems) while still keeping the package versions, I decided to build it myself.
+
+## Why use conda-share?
+
+### TL;DR
+
+There is (at time of writing) no conda command in existence that exports only the user installed packages, with their version numbers, and also includes the installed pip packages. This is what you need to share an environment consistently and effectively.
+
+conda-share makes this easy.
 
 ### So why not just use "conda env export"?
 
@@ -12,11 +20,15 @@ So if you export on your lab server that runs Linux and try to install it on you
 
 Guess how I know this...
 
+Conda-share solves this problem by only including the packages you specifically installed, just like `conda env export --from-history`
+
 ### So why not just use "conda env export --from-history"?
 
-Because that doesn't return any version numbers that you didn't ask for at time of install. It also doesn't include any pip packages.
+Because that command doesn't return any version numbers that you didn't ask for at time of install. It also doesn't include any pip packages.
 
-This adds the version numbers to the top level packages provided in the --from-history command and also adds the pip packages back in.
+This means that if you were to `conda install python=3.13 numpy` at the beginning, then only the `python` package will have a version number in your export. If numpy has upgraded 5 major versions since then, then when the next person goes to recreate this environment, they will install the wrong version of numpy.
+
+To solve this, conda-share only includes the packages in `--from-history`, but it includes the version numbers as well. Additionally, conda-share includes the pip packages.
 
 ### Other small benefits
 
@@ -28,6 +40,26 @@ There are other small benefits to using this software
 ## How to get the executable
 
 Go to the releases page in this GitHub repo and download the right executable for you.
+
+## How to Use
+
+```bash
+# Export environment to a file with the same name as the environment
+conda-share <env_name>
+# ex: conda-share test_env
+# creates test_env.yml in the current folder
+
+# Export environment to a file with a different location/name
+conda-share <env_name> -p <new_file_path>
+# ex: conda-share test_env -p ~/my_envs/my_test_env.yml
+# creates my_test_env.yml inside the ~/my_envs folder
+
+# Export environment and just display it to the screen
+conda-share <env_name> -d
+# ex: conda-share test_env -d
+# outpus the test_env yaml to screen
+
+```
 
 ## How to Build
 
