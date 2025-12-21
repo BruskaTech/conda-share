@@ -26,3 +26,6 @@ target
 
 # MacOS
 .DS_Store
+
+# Release files
+release_files/
