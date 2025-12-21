@@ -16,7 +16,7 @@ conda-share makes this easy.
 
 Well, it outputs all the operating system specific packages too!
 
-So if you export on your lab server that runs Linux and try to install it on your MacBook, it won't be able to build. That is not because there is any difference in practice if you manually install the packages, but because of those extra operating spsecific packages.
+So if you export on your lab server that runs Linux and try to install it on your MacBook, it won't be able to build. That is not because there is any difference in practice if you manually install the packages, but because of those extra operating system specific packages.
 
 Guess how I know this...
 
