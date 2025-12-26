@@ -2,7 +2,7 @@ use clap::Parser;
 use anyhow::Ok;
 use std::path::Path;
 
-use conda_share::*;
+use conda_share_core::*;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]

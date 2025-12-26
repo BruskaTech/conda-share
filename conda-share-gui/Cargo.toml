@@ -1,0 +1,11 @@
+[package]
+name = "conda-share-gui"
+version = "1.2.0"
+edition = "2024"
+
+[dependencies]
+conda-share-core = { path = "../conda-share-core" }
+slint = "1.14.1"
+
+[build-dependencies]
+slint-build = "1.14.1"

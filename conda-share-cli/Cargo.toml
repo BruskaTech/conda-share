@@ -1,0 +1,9 @@
+[package]
+name = "conda-share-cli"
+version = "1.2.0"
+edition = "2024"
+
+[dependencies]
+conda-share-core = { path = "../conda-share-core" }
+anyhow = "1.0.100"
+clap = { version = "4.5.53", features = ["derive"] }
