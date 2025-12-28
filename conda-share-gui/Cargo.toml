@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 conda-share-core = { path = "../conda-share-core" }
+rfd = "0.16.0"
 slint = "1.14.1"
 
 [build-dependencies]

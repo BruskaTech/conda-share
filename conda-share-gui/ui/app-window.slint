@@ -1,17 +1,83 @@
-import { Button, VerticalBox } from "std-widgets.slint";
+import { VerticalBox, HorizontalBox, ComboBox } from "std-widgets.slint";
+import { Button } from "button.slint";
 
 export component AppWindow inherits Window {
-    in-out property <int> counter: 42;
-    callback request-increase-value();
+    in-out property <[string]> conda_envs: [];
+    in-out property <string> output_folder: "";
+    in-out property <bool> picking: false;
+
+    in-out property <string> selected_env <=> env_box.current-value;
+
+    callback pick_file();
+    callback pick_folder();
+    callback create_env_file();
+
+    title: "conda-share";
+    min-width: 500px;
+    
     VerticalBox {
+        alignment: start;
+
         Text {
-            text: "Counter: \{root.counter}";
+            text: "conda-share";
+            font-size: 25px;
+            horizontal-alignment: center;
         }
 
-        Button {
-            text: "Increase value";
-            clicked => {
-                root.request-increase-value();
+        Rectangle {
+            border-color: #b0b0b0;
+            border-width: 1px;
+            background: transparent;
+            
+            HorizontalBox {
+                env_box := ComboBox {
+                    enabled: !picking;
+                    current-value: "Select conda environment";
+                    model: conda_envs;
+                }
+            }
+        }
+
+        Rectangle {
+            border-color: #b0b0b0;
+            border-width: 1px;
+            background: transparent;
+            
+            HorizontalBox {
+                Button {
+                    enabled: !picking;
+                    text: "Select output folder";
+                    clicked => { pick_folder(); }
+                    width: 150px;
+                }
+                Rectangle {
+                    // background: grey;
+                    height: selected_folder_text.preferred-height + 6px * 2;
+            
+                    selected_folder_text := Text {
+                        text: output_folder == "" ? "No folder chosen." : output_folder;
+                        x: 6px;
+
+                        wrap: word-wrap;
+                        vertical-alignment: center;
+                        horizontal-alignment: left;
+
+                        width: parent.width - parent.padding * 2;
+                    }
+                }
+            }
+        }
+        
+        HorizontalBox { 
+            alignment: center; 
+            
+            Button {
+                text: "Create Env File";
+                enabled: selected_env != "" && output_folder != "";
+                clicked => { create_env_file(); }
+                width: 300px;
+                height: 40px;
+                font-size: 18px;
             }
         }
     }
