@@ -98,7 +98,7 @@ pub fn sharable_env(env_name: &str) -> Result<CondaEnv, CondaError> {
             .iter()
             .map(|e| e.name.as_str())
             .collect();
-        if conda_deps_from_history.contains(&package.name.as_str()) {
+        if conda_deps_from_history.contains(&package.name.as_str()) || package.name == "python" || package.name == "pip" {
             conda_deps.push(package.clone());
         }
         if package.channel.as_deref() == Some("pypi") {
