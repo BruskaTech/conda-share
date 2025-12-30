@@ -1,6 +1,7 @@
 use clap::Parser;
 use anyhow::Ok;
 use std::path::Path;
+use std::io::{self, Write};
 
 use conda_share_core::*;
 
@@ -33,6 +34,29 @@ fn main() -> anyhow::Result<()> {
 
     let file_path = args.path.unwrap_or(args.env_name + ".yml");
     let output_path = Path::new(&file_path);
+
+    // If the file exists, ask for confirmation to overwrite
+    if output_path.exists() {
+        loop {
+            print!(
+                "Output file '{}' already exists. Overwrite? [y/N]: ",
+                output_path.display()
+            );
+            io::stdout().flush()?;
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+            let input = input.trim().to_lowercase();
+            if input == "y" || input == "yes" {
+                break;
+            } else if input == "n" || input == "no" || input.is_empty() {
+                println!("Aborting.");
+                return Ok(());
+            } else {
+                println!("Invalid input. Please enter 'y' or 'n'.");
+            }
+        }
+    }
+    
     sharable_conda_env.save(output_path)?;
 
     Ok(())
