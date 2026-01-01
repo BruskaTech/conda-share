@@ -11,7 +11,7 @@ pub enum CondaError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
     #[error("YAML error: {0}")]
-    Yaml(#[from] serde_yaml::Error),
+    Yaml(#[from] serde_yaml_bw::Error),
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("UTF-8 error: {0}")]
@@ -119,7 +119,7 @@ pub fn sharable_env(env_name: &str) -> Result<CondaEnv, CondaError> {
 struct CondaEnvExportYaml {
     name: String,
     channels: Vec<String>,
-    dependencies: Vec<serde_yaml::Value>,
+    dependencies: Vec<serde_yaml_bw::Value>,
 }
 
 pub fn conda_env_export(env_name: &str, from_history: bool) -> Result<CondaEnv, CondaError> {
@@ -136,7 +136,7 @@ pub fn conda_env_export(env_name: &str, from_history: bool) -> Result<CondaEnv, 
     let output = conda_command(args)?;
 
     let yaml = String::from_utf8(output.stdout)?;
-    let parsed: CondaEnvExportYaml = serde_yaml::from_str(&yaml)?;
+    let parsed: CondaEnvExportYaml = serde_yaml_bw::from_str(&yaml)?;
 
     let dependencies = parsed.dependencies.iter()
         .filter_map(|dep| dep.as_str().map(|s| {

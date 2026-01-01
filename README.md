@@ -41,7 +41,7 @@ There are other small benefits to using this software
 
 Go to the releases page in this GitHub repo and download the right executable for you.
 
-## How to Use
+## How to use the CLI version
 
 ```bash
 # Export environment to a file with the same name as the environment
