@@ -41,6 +41,11 @@ There are other small benefits to using this software
 
 Go to the releases page in this GitHub repo and download the right executable for you.
 
+There are two different executables for each OS:
+
+- conda-share, which is the CLI version
+- conda-share-gui, which is the GUI version
+
 ## How to use the CLI version
 
 ```bash
@@ -57,9 +62,14 @@ conda-share <env_name> -p <new_file_path>
 # Export environment and just display it to the screen
 conda-share <env_name> -d
 # ex: conda-share test_env -d
-# outpus the test_env yaml to screen
-
+# outputs the test_env yaml to screen
 ```
+
+## How to use the GUI version
+
+Install it and use it.
+
+I personally think it is intuitive, but if you don't think so then please let me know. I'll try to make it more clear.
 
 ## How to Build
 
