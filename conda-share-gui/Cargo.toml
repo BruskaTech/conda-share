@@ -1,9 +1,10 @@
 [package]
 name = "conda-share-gui"
-version = "1.2.0"
+version = "1.3.0"
 edition = "2024"
 
 [dependencies]
+anyhow = "1.0.100"
 conda-share-core = { path = "../conda-share-core" }
 rfd = "0.16.0"
 slint = "1.14.1"

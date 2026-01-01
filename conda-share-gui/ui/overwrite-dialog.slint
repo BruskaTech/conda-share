@@ -1,0 +1,13 @@
+import { StandardButton, Button } from "std-widgets.slint";
+export component OverwriteDialog inherits Dialog {
+    in-out property<string> file_path: "";
+    in-out property<string> env_name: "";
+    
+    in property<string> file_name: "";
+
+    Text {
+      text: "The file \"" + file_name + "\" already exists. Do you want to overwrite it?";
+    }
+    StandardButton { kind: ok; }
+    StandardButton { kind: cancel; }
+}

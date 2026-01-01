@@ -1,14 +1,18 @@
-import { VerticalBox, HorizontalBox, ComboBox } from "std-widgets.slint";
+import { VerticalBox, HorizontalBox, ComboBox, StandardButton, TextEdit } from "std-widgets.slint";
 import { Button } from "button.slint";
+import { OverwriteDialog } from "overwrite-dialog.slint";
+import { ErrorDialog } from "error-dialog.slint";
+
+export { OverwriteDialog, ErrorDialog }
 
 export component AppWindow inherits Window {
-    in-out property <[string]> conda_envs: [];
+    in property <[string]> conda_envs: [];
     in-out property <string> output_folder: "";
-    in-out property <bool> picking: false;
+    out property <string> output_file_name: "";
+    in property <bool> picking: false;
 
-    in-out property <string> selected_env <=> env_box.current-value;
+    out property <string> selected_env <=> env_box.current-value;
 
-    callback pick_file();
     callback pick_folder();
     callback create_env_file();
 
@@ -34,6 +38,26 @@ export component AppWindow inherits Window {
                     enabled: !picking;
                     current-value: "Select conda environment";
                     model: conda_envs;
+                    selected(val) => { output_file_name = val + ".yml"; }
+                }
+            }
+        }
+
+        Rectangle {
+            border-color: #b0b0b0;
+            border-width: 1px;
+            background: transparent;
+            
+            HorizontalBox {
+                output_name_text := Text {
+                    text: "Output File Name:";
+                    vertical-alignment: center;
+                }
+                TextEdit {
+                    enabled: !picking;
+                    text <=> output_file_name;
+                    height: output_name_text.preferred-height + 9px * 2;
+                    font-size: output_name_text.font-size;
                 }
             }
         }
@@ -73,7 +97,7 @@ export component AppWindow inherits Window {
             
             Button {
                 text: "Create Env File";
-                enabled: selected_env != "" && output_folder != "";
+                enabled: selected_env != "" && output_file_name != "" && output_folder != "";
                 clicked => { create_env_file(); }
                 width: 300px;
                 height: 40px;

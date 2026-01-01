@@ -61,6 +61,12 @@ impl CondaEnv {
     }
     pub fn save(&self, path: &Path) -> Result<(), CondaError> {
         let yml = self.to_yaml()?;
+        if let Some(dir) = path.parent() {
+            return Err(CondaError::Io(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("Output folder does not exist anymore: {}", dir.display()),
+            )));
+        }
         let mut file = File::create(path)?;
         file.write_all(yml.as_bytes())?;
         Ok(())

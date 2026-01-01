@@ -1,8 +1,8 @@
 export component Button inherits Rectangle {
     in property<bool> enabled: true;
 
-    in-out property text <=> txt.text;
-    in-out property font-size <=> txt.font-size;
+    in property text <=> txt.text;
+    in property font-size <=> txt.font-size;
 
     callback clicked <=> touch.clicked;
 
