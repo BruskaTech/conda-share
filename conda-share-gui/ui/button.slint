@@ -1,8 +1,11 @@
 export component Button inherits Rectangle {
-    in property<bool> enabled: true;
+    // This was created so that we could disable the buttons and change the background color
 
-    in property text <=> txt.text;
-    in property font-size <=> txt.font-size;
+    in property<bool> enabled: true;
+    in property<string> text <=> txt.text;
+    in property<length> font-size <=> txt.font-size;
+
+    out property<bool> has-focus <=> fs.has-focus;
 
     callback clicked <=> touch.clicked;
 
@@ -12,14 +15,29 @@ export component Button inherits Rectangle {
     background: !enabled ? #aaa : touch.pressed ? #6b8282 : touch.has-hover ? #6c616c : #707070;
     min-width: txt.preferred-width + 20px;
     min-height: txt.preferred-height + 10px;
+    forward-focus: fs;
 
-    txt := Text {
-        x: (parent.width - self.width)/2 + (touch.pressed ? 2px : 0);
-        y: (parent.height - self.height)/2 + (touch.pressed ? 1px : 0);
-        color: !enabled ? #888 : touch.pressed ? #fff : #eee;
-    }
 
-    touch := TouchArea {
+    fs := FocusScope {
         enabled: root.enabled;
+        key-pressed(event) => {
+            if (event.text == Key.Return) {
+                root.clicked();
+                accept
+            }
+            reject
+        }
+
+        txt := Text {
+            x: (parent.width - self.width)/2 + (touch.pressed ? 2px : 0);
+            y: (parent.height - self.height)/2 + (touch.pressed ? 1px : 0);
+            color: !enabled ? #888 : touch.pressed ? #fff : #eee;
+        }
+
+        touch := TouchArea {
+            enabled: root.enabled;
+        }
     }
+
+    
 }
