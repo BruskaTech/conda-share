@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: Compile and release
-        uses: BruskaTech/rust-build.action@936e37e12fc8a43468340e5b42dc61aae5fdb74e
+        uses: BruskaTech/rust-build.action@8f6b8f94a5bb6c6aeaf6276b58783bdff0e1d637
         env:
           SRC_DIR: /github/workspace
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
