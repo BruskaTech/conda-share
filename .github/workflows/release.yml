@@ -25,7 +25,7 @@ jobs:
       - name: Compile and release
         uses: BruskaTech/rust-build.action@936e37e12fc8a43468340e5b42dc61aae5fdb74e
         env:
-          SRC_DIR: /github/workspace/src
+          SRC_DIR: /github/workspace
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
           RUSTTARGET: ${{ matrix.target }}
