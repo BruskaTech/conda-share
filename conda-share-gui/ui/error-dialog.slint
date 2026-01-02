@@ -4,7 +4,10 @@ export component ErrorDialog inherits Dialog {
     
     always-on-top: true;
     title: "Error";
+    height: txt.preferred-height + 20px + btn.preferred-height + 20px;
+    width: max(300px, txt.preferred-width + 40px);
+    forward-focus: btn;
 
-    Text { text <=> error_msg; }
-    StandardButton { kind: close; }
+    txt := Text { text <=> error_msg; }
+    btn := StandardButton { kind: close; }
 }

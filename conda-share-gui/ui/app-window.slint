@@ -1,5 +1,4 @@
-import { VerticalBox, HorizontalBox, ComboBox, StandardButton, TextEdit } from "std-widgets.slint";
-import { Button } from "button.slint";
+import { VerticalBox, HorizontalBox, ComboBox, StandardButton, TextEdit, Button} from "std-widgets.slint";
 import { OverwriteDialog } from "overwrite-dialog.slint";
 import { ErrorDialog } from "error-dialog.slint";
 import { NotificationDialog } from "notification-dialog.slint";
@@ -19,6 +18,7 @@ export component AppWindow inherits Window {
 
     title: "conda-share";
     min-width: 500px;
+    forward-focus: env_box;
     
     VerticalBox {
         alignment: start;
@@ -39,7 +39,10 @@ export component AppWindow inherits Window {
                     enabled: !picking;
                     current-value: "Select conda environment";
                     model: conda_envs;
-                    selected(val) => { output_file_name = val + ".yml"; }
+                    selected(val) => { 
+                        output_file_name = val + ".yml";
+                        // btn_dir.focus(); // This is broken in slint currently
+                    }
                 }
             }
         }
@@ -69,14 +72,16 @@ export component AppWindow inherits Window {
             background: transparent;
             
             HorizontalBox {
-                Button {
+                btn_dir := Button {
                     enabled: !picking;
                     text: "Select output folder";
-                    clicked => { pick_folder(); }
+                    clicked => {
+                        pick_folder();
+                        // btn_sub.focus(); // This is broken in slint currently
+                    }
                     width: 150px;
                 }
                 Rectangle {
-                    // background: grey;
                     height: selected_folder_text.preferred-height + 6px * 2;
             
                     selected_folder_text := Text {
@@ -96,13 +101,12 @@ export component AppWindow inherits Window {
         HorizontalBox { 
             alignment: center; 
             
-            Button {
+            btn_sub := Button {
                 text: "Create Env File";
                 enabled: selected_env != "" && output_file_name != "" && output_folder != "";
                 clicked => { create_env_file(); }
                 width: 300px;
                 height: 40px;
-                font-size: 18px;
             }
         }
     }

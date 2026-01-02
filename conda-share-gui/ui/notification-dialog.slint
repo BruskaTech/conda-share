@@ -4,7 +4,10 @@ export component NotificationDialog inherits Dialog {
     
     always-on-top: true;
     title: "Notification";
+    height: txt.preferred-height + 20px + btn.preferred-height + 20px;
+    width: max(300px, txt.preferred-width + 40px);
+    forward-focus: btn;
 
-    Text { text <=> msg; }
-    StandardButton { kind: close; }
+    txt := Text { text <=> msg; max-height: 200px; wrap: word-wrap; }
+    btn := StandardButton { kind: close; }
 }

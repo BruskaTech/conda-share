@@ -6,14 +6,15 @@ export component OverwriteDialog inherits Dialog {
 
     always-on-top: true;
     title: "Overwrite File?";
+    height: txt.preferred-height + 20px + btn_ok.preferred-height + 20px;
+    width: max(300px, txt.preferred-width + 40px);
+    forward-focus: btn_ok;
 
-    VerticalLayout {
-        Text {
-            text: "The file \"" + file_name + "\" already exists. Do you want to overwrite it?";
-            height: self.preferred-height;
-            wrap: word-wrap;
-        }
+    txt := Text {
+        text: "The file \"" + file_name + "\" already exists. Do you want to overwrite it?";
+        height: self.preferred-height;
+        wrap: word-wrap;
     }
-    StandardButton { kind: ok; }
-    StandardButton { kind: cancel; }
+    btn_ok := StandardButton { kind: ok; }
+    btn_cancel := StandardButton { kind: cancel; }
 }

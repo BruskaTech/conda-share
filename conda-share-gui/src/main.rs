@@ -75,6 +75,7 @@ fn main() -> anyhow::Result<()> {
         let ui_weak = ui.as_weak();
         move || {
             let Some(ui) = ui_weak.upgrade() else { return; };
+
             ui.set_picking(true);
 
             // Spawn an async task *on the Slint event loop thread*.
