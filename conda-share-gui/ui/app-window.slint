@@ -2,8 +2,9 @@ import { VerticalBox, HorizontalBox, ComboBox, StandardButton, TextEdit } from "
 import { Button } from "button.slint";
 import { OverwriteDialog } from "overwrite-dialog.slint";
 import { ErrorDialog } from "error-dialog.slint";
+import { NotificationDialog } from "notification-dialog.slint";
 
-export { OverwriteDialog, ErrorDialog }
+export { OverwriteDialog, ErrorDialog, NotificationDialog }
 
 export component AppWindow inherits Window {
     in property <[string]> conda_envs: [];

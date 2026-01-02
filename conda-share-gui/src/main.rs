@@ -8,7 +8,6 @@ use conda_share_core::*;
 
 slint::include_modules!();
 
-// TODO: (feature) After the file is created, show a message box to inform the user of success or failure or make the button disabled again
 // TODO: (feature) Make it so that every time you click the ComboBox it updates what is inside (requires making a custom ComboBox)
 // TODO: (feature) Make a smarter error dialog that only shows the first error
 
@@ -37,7 +36,14 @@ impl ErrorDialog {
     }
 }
 
-fn create_and_save_env(env_name: &str, output_path: &Path, error_dialog: &ErrorDialog) {
+impl NotificationDialog {
+    pub fn show_msg(&self, msg: &str) -> Result<(), slint::PlatformError> {
+        self.set_msg(msg.into());
+        self.show()
+    }
+}
+
+fn create_and_save_env(env_name: &str, output_path: &Path, error_dialog: &ErrorDialog, notification_dialog: &NotificationDialog) {
     let sharable_conda_env = match sharable_env(env_name) {
         Ok(env) => env,
         Err(e) => {
@@ -49,12 +55,21 @@ fn create_and_save_env(env_name: &str, output_path: &Path, error_dialog: &ErrorD
         error_dialog.show_error(&format!("Failed to save environment file: {e}"));
         return;
     }
+
+    let msg = format!(
+        "Successfully created yaml file for the environment {env_name} file at:\n{}",
+        output_path.display()
+    );
+    if let Err(e) = notification_dialog.show_msg(&msg) {
+        error_dialog.show_error(&format!("Failed to show notification dialog: {e}"));
+    }
 }
 
 fn main() -> anyhow::Result<()> {
     let ui = AppWindow::new()?;
     let overwrite_dialog = OverwriteDialog::new()?;
     let error_dialog = ErrorDialog::new()?;
+    let notification_dialog = NotificationDialog::new()?;
 
     ui.on_pick_folder({
         let ui_weak = ui.as_weak();
@@ -92,10 +107,12 @@ fn main() -> anyhow::Result<()> {
         let ui_weak = ui.as_weak();
         let od_weak = overwrite_dialog.as_weak();
         let ed_weak = error_dialog.as_weak();
+        let nd_weak = notification_dialog.as_weak();
         move || {
             let Some(ui) = ui_weak.upgrade() else { return; };
             let Some(overwrite_dialog) = od_weak.upgrade() else { return; };
             let Some(error_dialog) = ed_weak.upgrade() else { return; };
+            let Some(notification_dialog) = nd_weak.upgrade() else { return; };
 
             let env_name: String = ui.get_selected_env().into();
             let folder_path: String = ui.get_output_folder().into();
@@ -113,22 +130,24 @@ fn main() -> anyhow::Result<()> {
                 return; // Save will be handled in the overwrite dialog
             }
 
-            create_and_save_env(&env_name, &output_path, &error_dialog);
+            create_and_save_env(&env_name, &output_path, &error_dialog, &notification_dialog);
         }
     });
 
     overwrite_dialog.on_ok_clicked({
         let od_weak = overwrite_dialog.as_weak();
         let ed_weak = error_dialog.as_weak();
+        let nd_weak = notification_dialog.as_weak();
         move || {
             let Some(overwrite_dialog) = od_weak.upgrade() else { return; };
             let Some(error_dialog) = ed_weak.upgrade() else { return; };
+            let Some(notification_dialog) = nd_weak.upgrade() else { return; };
 
             let env_name: String = overwrite_dialog.get_env_name().into();
             let output_path_string: String = overwrite_dialog.get_file_path().into();
             let output_path= Path::new(&output_path_string);
 
-            create_and_save_env(&env_name, &output_path, &error_dialog);
+            create_and_save_env(&env_name, &output_path, &error_dialog, &notification_dialog);
             
             if let Err(e) = overwrite_dialog.hide() {
                 error_dialog.show_error(&format!("Failed to hide overwrite dialog: {e}"));
@@ -155,6 +174,19 @@ fn main() -> anyhow::Result<()> {
             let Some(error_dialog) = ed_weak.upgrade() else { return; };
 
             error_dialog.hide().expect(&format!("Critical Error: Failed to close error message"));
+        }
+    });
+
+    notification_dialog.on_close_clicked({
+        let nd_weak = notification_dialog.as_weak();
+        let ed_weak = error_dialog.as_weak();
+        move || {
+            let Some(notification_dialog) = nd_weak.upgrade() else { return; };
+            let Some(error_dialog) = ed_weak.upgrade() else { return; };
+
+            if let Err(e) = notification_dialog.hide() {
+                error_dialog.show_error(&format!("Failed to hide notification dialog: {e}"));
+            }
         }
     });
 

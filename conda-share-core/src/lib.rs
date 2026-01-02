@@ -61,7 +61,7 @@ impl CondaEnv {
     }
     pub fn save(&self, path: &Path) -> Result<(), CondaError> {
         let yml = self.to_yaml()?;
-        if let Some(dir) = path.parent() {
+        if let Some(dir) = path.parent() && !dir.exists() {
             return Err(CondaError::Io(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
                 format!("Output folder does not exist anymore: {}", dir.display()),

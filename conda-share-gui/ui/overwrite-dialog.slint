@@ -1,12 +1,18 @@
-import { StandardButton, Button } from "std-widgets.slint";
+import { StandardButton, Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
 export component OverwriteDialog inherits Dialog {
     in-out property<string> file_path: "";
     in-out property<string> env_name: "";
-    
     in property<string> file_name: "";
 
-    Text {
-      text: "The file \"" + file_name + "\" already exists. Do you want to overwrite it?";
+    always-on-top: true;
+    title: "Overwrite File?";
+
+    VerticalLayout {
+        Text {
+            text: "The file \"" + file_name + "\" already exists. Do you want to overwrite it?";
+            height: self.preferred-height;
+            wrap: word-wrap;
+        }
     }
     StandardButton { kind: ok; }
     StandardButton { kind: cancel; }

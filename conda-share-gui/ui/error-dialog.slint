@@ -3,6 +3,7 @@ export component ErrorDialog inherits Dialog {
     in property<string> error_msg: "";
     
     always-on-top: true;
+    title: "Error";
 
     Text { text <=> error_msg; }
     StandardButton { kind: close; }

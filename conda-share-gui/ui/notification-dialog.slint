@@ -1,0 +1,10 @@
+import { StandardButton, Button } from "std-widgets.slint";
+export component NotificationDialog inherits Dialog {
+    in property<string> msg: "";
+    
+    always-on-top: true;
+    title: "Notification";
+
+    Text { text <=> msg; }
+    StandardButton { kind: close; }
+}
