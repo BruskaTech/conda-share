@@ -16,17 +16,17 @@ jobs:
           - os: macos-15
             target: aarch64-apple-darwin
             shell: bash
-            script: ./scripts/build-and-package-unix.sh
+            script: ./scripts/build_and_package_unix.sh
 
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             shell: bash
-            script: ./scripts/build-and-package-unix.sh
+            script: ./scripts/build_and_package_unix.sh
 
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             shell: pwsh
-            script: ./scripts/build-and-package-windows.ps1
+            script: ./scripts/build_and_package_windows.ps1
 
     runs-on: ${{ matrix.os }}
 
