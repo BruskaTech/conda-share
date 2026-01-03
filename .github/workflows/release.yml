@@ -1,4 +1,4 @@
-name: Release (workspace bins: macOS, Linux, Windows)
+# .github/workflows/release.yml
 
 on:
   release:
