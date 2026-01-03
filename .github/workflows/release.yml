@@ -44,7 +44,6 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Build + package ALL workspace binaries
-        shell: ${{ matrix.shell }}
         env:
           TARGET: ${{ matrix.target }}
         run: ${{ matrix.script }}
