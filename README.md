@@ -67,9 +67,13 @@ conda-share <env_name> -d
 
 ## How to use the GUI version
 
-Install it and use it.
+Download it, unzip it, and use it.
 
-I personally think it is intuitive, but if you don't think so then please let me know. I'll try to make it more clear.
+The exception is of course MacOS with it's extra security settings, since the app build in github actions is not a signed release. You will need to run this command in a terminal first.
+
+```bash
+xattr -d com.apple.quarantine <path_to_file>/conda-share-gui
+```
 
 ## How to Build
 
