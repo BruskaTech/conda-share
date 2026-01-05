@@ -1,3 +1,113 @@
+//! # conda-share
+//!
+//! Export a Conda environment into a compact, reproducible YAML representation.
+//!
+//! This crate shells out to the `conda` executable (must be available on `PATH`) to:
+//!
+//! - Detect the currently active environment (`conda info --json`)
+//! - List available environments (`conda env list`)
+//! - Export an environment definition (`conda env export`)
+//! - Capture the exact installed package set (`conda list --json`)
+//!
+//! The primary goal is to generate a **shareable environment YAML** that is closer to
+//! “what you explicitly installed” (via `--from-history`) while also including version
+//! numbers and pip packages.
+//!
+//! The secondary goal is to provide a **programmatic API** for Rust applications
+//! to read and evaluate conda environments.
+//! 
+//! ## Quick start
+//!
+//! Export the currently active environment:
+//!
+//! ```no_run
+//! use conda_share::share_current_env;
+//!
+//! fn main() -> Result<(), conda_share::CondaError> {
+//!     let env = share_current_env()?;
+//!     println!("{env}"); // prints YAML via Display
+//!     Ok(())
+//! }
+//! ```
+//!
+//! Export a specific environment by name and write it to disk:
+//!
+//! ```no_run
+//! use conda_share::share_env;
+//!
+//! fn main() -> Result<(), conda_share::CondaError> {
+//!     let env = share_env("my-env")?;
+//!     env.save("environment.yml")?;
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ## What gets included
+//!
+//! `share_env()` builds a [`CondaEnv`] by combining three sources:
+//!
+//! 1. `conda env export --from-history -n <env>` (to approximate explicitly requested conda deps)
+//! 2. `conda env export -n <env>` (to capture environment name + channels)
+//! 3. `conda list -n <env> --json` (to capture installed packages with versions/build/channel)
+//!
+//! It then populates:
+//!
+//! - `conda_deps`: packages that appear in the `--from-history` export **plus** `python` and `pip`
+//! - `pip_deps`: packages whose `channel` equals `"pypi"`
+//!
+//! This means the output is usually **smaller than a full export**, but still pins important
+//! packages, and separates pip-installed packages for clarity.
+//!
+//! ## YAML format
+//!
+//! [`CondaEnv::to_yaml`] produces YAML in a format compatible with `conda env create -f ...`
+//! *in spirit*, but note that the pip section is currently emitted after conda dependencies
+//! and is indented in a way that assumes it lives inside `dependencies:`.
+//!
+//! Example output shape:
+//!
+//! ```text
+//! name: my-env
+//! channels:
+//!   - conda-forge
+//!   - defaults
+//! dependencies:
+//!   - python=3.11.6=...build...
+//!   - numpy=1.26.2=...build...
+//!   - pip:
+//!       - some-pip-package==1.2.3
+//! ```
+//!
+//! If a pip dependency is missing a version, [`CondaEnv::to_yaml`] returns
+//! [`CondaError::MissingPipVersion`].
+//!
+//! ## Error handling
+//!
+//! All public APIs return [`Result`] with [`CondaError`]. Common failure cases:
+//!
+//! - `conda` is not found on `PATH` → [`CondaError::CommandExecutionFailed`]
+//! - The named environment does not exist → [`CondaError::EnvNotFound`]
+//! - No environment is currently active → [`CondaError::NoActiveEnv`]
+//! - A conda subcommand exits non-zero → [`CondaError::CondaCommandFailed`]
+//! - YAML/JSON/UTF-8 parsing errors when decoding conda output
+//!
+//! ## Public API overview
+//!
+//! - [`share_current_env`]: export the active environment
+//! - [`share_env`]: export a named environment
+//! - [`env_exists`], [`current_env`]: environment helpers
+//! - [`CondaEnv`]: in-memory environment model, plus [`CondaEnv::to_yaml`] and [`CondaEnv::save`]
+//! - Low-level wrappers: [`conda_command`], [`conda_env_export`], [`conda_list`], [`conda_env_list`], [`conda_info`]
+//!
+//! ## Requirements
+//!
+//! - Conda must be installed and invokable as `conda`
+//! - The calling process must have permission to execute `conda` and write output files
+//!
+//! ## License
+//!
+//! GPL-3.0-or-later
+
 use core::fmt;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
