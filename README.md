@@ -14,6 +14,13 @@ conda-share makes this easy.
 
 There is even a single line you can add to your python files and jupyer notebooks to save an updated environment every time it is run (so you don't have to keep track of it).
 
+### General Goals
+
+The primary goal is to generate a **shareable environment YAML** that is closer to “what you explicitly installed” (via `--from-history`) while also including version
+numbers and pip packages.
+
+The secondary goal is to provide a **programmatic API** for Python and Rust applications to read and evaluate conda environments.
+
 ### So why not just use "conda env export"?
 
 Well, it outputs all the operating system specific packages too!
@@ -34,9 +41,10 @@ To solve this, conda-share only includes the packages in `--from-history`, but i
 
 ### Other small benefits
 
-There are other small benefits to using this software
+There are other small benefits to using this software:
 
 - If you happen to make a typo when writing the environment name, it will tell you if the environment doesn't exist. I'm surprised that the default conda command doesn't error in this situation.
+- Convenient functions to get info from conda environments in Python and Rust.
 - You help me get my name out there. :)
 
 ## How to get the executable
@@ -73,7 +81,7 @@ conda-share <env_name> -d
 
 Download it, unzip it, and use it.
 
-The exception is of course MacOS with it's extra security settings. Since the app built in github actions is not a signed release, you will need to run this command in a terminal first.
+The exception is of course MacOS with it's extra security settings. Since the app built in github actions is not a signed release, you will need to let MacOS know that the app is safe to run by running the following command:
 
 ```bash
 # Make sure to replace <path_to_file> with the path to your downloaded and unzipped conda-share-gui file.
@@ -92,13 +100,12 @@ conda activate <env_name>
 pip install conda-share
 ```
 
-Then, just add the following lines to the top of your code.
+Then, just add this one line to the top of your code.
 
 ```python
-import conda-share
-conda_share.save_current_env()
-# You can also save to a different directory with a different name
-# ex: conda_share.save_current_env("~/MyEnvs/env.yml")
+import conda_share; conda_share.save_current_env()
+# You can also save it to a different directory with a different name.
+# import conda_share; conda_share.save_current_env("~/MyEnvs/env.yml")
 ```
 
 Voilà! That's it.
@@ -143,3 +150,13 @@ python -m ipykernel install --user --name <env_name>
 1. Run `maturin build --release --sdist --manifest-path conda_share_py/Cargo.toml` in the repo.
 1. Look in the `target/wheels` folder to see the newly build .whl files.
 1. Install the new whl file with `pip install target/wheels/<my_whl_file>.whl`
+
+### Other tips
+
+1. If you are building for an actual github release, please make sure to run these three commands locally BEFORE making the release!!!
+
+    ```bash
+    cargo build
+    cargo publish --dry-run -p conda_share
+    maturin build --release --sdist --manifest-path conda_share_py/Cargo.toml
+    ```

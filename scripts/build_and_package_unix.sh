@@ -67,6 +67,12 @@ while IFS=$'\t' read -r pkg bin; do
   cp "${BIN_PATH}" "${DIST_DIR}/${bin}/${bin}"
   chmod +x "${DIST_DIR}/${bin}/${bin}"
 
+  if [[ "$(uname)" == "Darwin" ]]; then
+    codesign --force --sign - "${DIST_DIR}/${bin}/${bin}"
+    xattr -d com.apple.quarantine "${DIST_DIR}/${bin}/${bin}" 2>/dev/null || true
+    codesign -dv --verbose=2 "${DIST_DIR}/${bin}/${bin}" || true
+  fi
+
   ( cd "${DIST_DIR}/${bin}" && zip -r "../../${ZIP_NAME}" "${bin}" )
 
   echo "Created ${ZIP_NAME}"
