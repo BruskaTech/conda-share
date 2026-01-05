@@ -64,7 +64,7 @@ Then, just add this one line to the top of your code.
 ```python
 import conda_share; conda_share.save_current_env()
 # You can also save it to a different directory with a different name.
-# import conda_share; conda_share.save_current_env("~/MyEnvs/env.yml")
+# import conda_share; conda_share.save_current_env("/path/to/my_envs/env.yml")
 ```
 
 Voilà! That's it.
