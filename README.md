@@ -12,6 +12,8 @@ There is (at time of writing) no conda command in existence that exports only th
 
 conda-share makes this easy.
 
+There is even a single line you can add to your python files and jupyer notebooks to save an updated environment every time it is run (so you don't have to keep track of it).
+
 ### So why not just use "conda env export"?
 
 Well, it outputs all the operating system specific packages too!
@@ -46,7 +48,9 @@ There are two different executables for each OS:
 - conda-share, which is the CLI version
 - conda-share-gui, which is the GUI version
 
-## How to use the CLI version
+## How to use
+
+### CLI version
 
 ```bash
 # Export environment to a file with the same name as the environment
@@ -65,19 +69,77 @@ conda-share <env_name> -d
 # outputs the test_env yaml to screen
 ```
 
-## How to use the GUI version
+### GUI version
 
 Download it, unzip it, and use it.
 
-The exception is of course MacOS with it's extra security settings, since the app build in github actions is not a signed release. You will need to run this command in a terminal first.
+The exception is of course MacOS with it's extra security settings. Since the app built in github actions is not a signed release, you will need to run this command in a terminal first.
 
 ```bash
+# Make sure to replace <path_to_file> with the path to your downloaded and unzipped conda-share-gui file.
 xattr -d com.apple.quarantine <path_to_file>/conda-share-gui
+```
+
+### Python version
+
+This makes it super easy to automatically keep your environment up to date for a python file or a jupyter notebook.
+
+First, make sure conda-share is installed in your conda environment.
+
+```bash
+# Make sure to replace <env_name> with the environment name
+conda activate <env_name>
+pip install conda-share
+```
+
+Then, just add the following lines to the top of your code.
+
+```python
+import conda-share
+conda_share.save_current_env()
+# You can also save to a different directory with a different name
+# ex: conda_share.save_current_env("~/MyEnvs/env.yml")
+```
+
+Voilà! That's it.
+
+There are also other functions available in the python package for viewing and sharing conda environments.
+
+### Rust version
+
+Just do ```cargo add conda_share``` and start coding.
+
+## So I have the yaml file, how do I setup the environment on a new computer?
+
+Good question. Make sure conda is installed on the computer and then just run the following command.
+
+```bash
+# Make sure to replace <env_file> with the yaml file path
+conda env create -f <env_file>
+```
+
+If you want it to also show up in jupyter-lab, you will need to run the following commands as well. You *may* need to restart your jupyter-lab server after it is added.
+
+```bash
+# Make sure to replace <env_name> with the environment name
+conda activate <env_name>
+conda install ipykernel
+python -m ipykernel install --user --name <env_name>
 ```
 
 ## How to Build
 
+### Rust parts
+
 1. Install rust [at this website](https://rust-lang.org/tools/install/).
-1. Run `cargo build -r` in this repo.
+1. Run `cargo build -r` in the repo.
 1. Copy the `conda-share` executable from `target/release/conda-share` to your normal executable location.
 1. Run it.
+
+### Python parts
+
+1. Make sure the rust parts (or at least conda_share) build correctly first.
+1. Install [maturin](https://www.maturin.rs/installation.html) using pip, pipx, or uv.
+1. Run `maturin build --release --sdist --manifest-path conda_share_py/Cargo.toml` in the repo.
+1. Look in the `target/wheels` folder to see the newly build .whl files.
+1. Install the new whl file with `pip install target/wheels/<my_whl_file>.whl`

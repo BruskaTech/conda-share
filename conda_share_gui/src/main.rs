@@ -44,7 +44,7 @@ impl NotificationDialog {
 }
 
 fn create_and_save_env(env_name: &str, output_path: &Path, error_dialog: &ErrorDialog, notification_dialog: &NotificationDialog) {
-    let sharable_conda_env = match sharable_env(env_name) {
+    let sharable_conda_env = match share_env(env_name) {
         Ok(env) => env,
         Err(e) => {
             error_dialog.show_error(&format!("Failed to generate sharable environment: {e}"));

@@ -1,4 +1,5 @@
 use core::fmt;
+use std::collections::HashMap;
 use std::io::Write;
 use std::path::Path;
 use std::process::{Command, Output};
@@ -21,11 +22,14 @@ pub enum CondaError {
     MissingPipVersion(String),
     #[error("Environment '{0}' does not exist. Available environments: {1}")]
     EnvNotFound(String, String),
+    #[error("No conda environment is currently active.")]
+    NoActiveEnv,
     #[error("Conda command failed (conda {0}): {1}")]
     CondaCommandFailed(String, String),
     #[error("Failed to execute conda command. This likely means it can't find the 'conda' executable in your PATH. {0}")]
     CommandExecutionFailed(String),
 }
+
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct CondaEnv {
@@ -73,12 +77,12 @@ impl CondaEnv {
 
         Ok(yml)
     }
-    pub fn save(&self, path: &Path) -> Result<(), CondaError> {
+    pub fn save(&self, path: impl AsRef<Path>) -> Result<(), CondaError> {
         let yml = self.to_yaml()?;
-        if let Some(dir) = path.parent() && !dir.exists() {
+        if let Some(dir) = path.as_ref().parent() && !dir.exists() {
             return Err(CondaError::Io(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
-                format!("Output folder does not exist anymore: {}", dir.display()),
+                format!("Output folder does not exist: \"{}\"", dir.display()),
             )));
         }
         let mut file = File::create(path)?;
@@ -86,6 +90,7 @@ impl CondaEnv {
         Ok(())
     }
 }
+
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct CondaPackage {
@@ -95,12 +100,61 @@ pub struct CondaPackage {
     pub channel: Option<String>,
 }
 
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub struct CondaInfo {
+    #[serde(rename = "GID")]
+    pub gid: u64,
+    #[serde(rename = "UID")]
+    pub uid: u64,
+    pub active_prefix: Option<String>,
+    pub active_prefix_name: Option<String>,
+    pub av_data_dir: String,
+    pub av_metadata_url_base: Option<String>,
+    pub channels: Vec<String>,
+    pub conda_build_version: String,
+    pub conda_env_version: String,
+    pub conda_location: String,
+    pub conda_prefix: String,
+    pub conda_shlvl: u64,
+    pub conda_version: String,
+    pub default_prefix: String,
+    pub env_vars: HashMap<String, String>,
+    pub envs: Vec<String>,
+    pub envs_dirs: Vec<String>,
+    pub netrc_file: Option<String>,
+    pub offline: bool,
+    pub platform: String,
+    pub python_version: String,
+    pub rc_path: String,
+    pub requests_version: String,
+    pub root_prefix: String,
+    pub root_writable: bool,
+    pub site_dirs: Vec<String>,
+    #[serde(rename = "sys.executable")]
+    pub sys_executable: String,
+    #[serde(rename = "sys.prefix")]
+    pub sys_prefix: String,
+    #[serde(rename = "sys.version")]
+    pub sys_version: String,
+    pub sys_rc_path: String,
+    pub user_agent: String,
+    pub user_rc_path: String,
+    pub virtual_pkgs: Vec<Vec<String>>,
+}
+
+
 pub fn env_exists(env_name: &str) -> Result<bool, CondaError> {
     let available_envs = conda_env_list()?;
     Ok(available_envs.contains(&env_name.to_string()))
 }
 
-pub fn sharable_env(env_name: &str) -> Result<CondaEnv, CondaError> {
+pub fn current_env() -> Result<Option<String>, CondaError> {
+    let info = conda_info()?;
+    Ok(info.active_prefix_name)
+}
+
+pub fn share_env(env_name: &str) -> Result<CondaEnv, CondaError> {
     let conda_env_from_history = conda_env_export(env_name, true)?;
     let conda_env_export = conda_env_export(env_name, false)?;
     let conda_list = conda_list(env_name)?;
@@ -127,6 +181,37 @@ pub fn sharable_env(env_name: &str) -> Result<CondaEnv, CondaError> {
     }
 
     Ok(CondaEnv { name, channels, conda_deps, pip_deps })
+}
+
+pub fn share_current_env() -> Result<CondaEnv, CondaError> {
+    let current_env = current_env()?
+        .ok_or(CondaError::NoActiveEnv)?;
+    share_env(&current_env)
+}
+
+
+pub fn conda_command<I, S>(args: I) -> Result<Output, CondaError>
+where 
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+    std::string::String: From<S>,
+{
+    let mut command = Command::new("conda");
+    let command = command.args(args);
+    let output = command.output().map_err(|e| {
+        CondaError::CommandExecutionFailed(format!("{e}"))
+    })?;
+
+    if !output.status.success() {
+        let command_str = command.get_args()
+            .map(|s| s.to_string_lossy())
+            .collect::<Vec<_>>()
+            .join(" ");
+        let err_str = String::from_utf8(output.stderr)?;
+        return Err(CondaError::CondaCommandFailed(command_str, err_str.into()));
+    }
+
+    Ok(output)
 }
 
 #[derive(Debug, Deserialize)]
@@ -188,30 +273,6 @@ pub fn conda_list(env_name: &str) -> Result<Vec<CondaPackage>, CondaError> {
     Ok(packages)
 }
 
-pub fn conda_command<I, S>(args: I) -> Result<Output, CondaError>
-where 
-    I: IntoIterator<Item = S>,
-    S: AsRef<OsStr>,
-    std::string::String: From<S>,
-{
-    let mut command = Command::new("conda");
-    let command = command.args(args);
-    let output = command.output().map_err(|e| {
-        CondaError::CommandExecutionFailed(format!("{e}"))
-    })?;
-
-    if !output.status.success() {
-        let command_str = command.get_args()
-            .map(|s| s.to_string_lossy())
-            .collect::<Vec<_>>()
-            .join(" ");
-        let err_str = String::from_utf8(output.stderr)?;
-        return Err(CondaError::CondaCommandFailed(command_str, err_str.into()));
-    }
-
-    Ok(output)
-}
-
 pub fn conda_env_list() -> Result<Vec<String>, CondaError> {
     let output = conda_command(["env", "list"])?;
 
@@ -229,4 +290,20 @@ pub fn conda_env_list() -> Result<Vec<String>, CondaError> {
         .collect();
 
     Ok(envs)
+}
+
+pub fn conda_info() -> Result<CondaInfo, CondaError> {
+    let output = conda_command(["info", "--json"])?;
+    let info: CondaInfo = serde_json::from_slice(&output.stdout)?;
+    Ok(info)
+}
+
+#[cfg(test)]
+mod tests {
+    // use super::*;
+
+    // #[test]
+    // fn test_conda_current_env() {
+    //     println!("{:?}", conda_current_env().unwrap());
+    // }
 }

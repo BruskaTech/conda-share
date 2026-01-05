@@ -25,7 +25,7 @@ fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
     // Generate the conda sharable environment
-    let sharable_conda_env = sharable_env(&args.env_name)?;
+    let sharable_conda_env = share_env(&args.env_name)?;
 
     if args.display {
         print!("{}", sharable_conda_env.to_yaml()?);
