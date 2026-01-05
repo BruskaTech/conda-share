@@ -983,7 +983,7 @@ dependencies = [
 
 [[package]]
 name = "conda_share"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -993,7 +993,7 @@ dependencies = [
 
 [[package]]
 name = "conda_share_cli"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -1002,7 +1002,7 @@ dependencies = [
 
 [[package]]
 name = "conda_share_gui"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "anyhow",
  "conda_share",
@@ -1013,7 +1013,7 @@ dependencies = [
 
 [[package]]
 name = "conda_share_py"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "conda_share",
  "pyo3",
