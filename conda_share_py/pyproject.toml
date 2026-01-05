@@ -5,3 +5,10 @@ build-backend = "maturin"
 [project]
 name = "conda-share"
 dynamic = ["version"]
+description = """Easily share conda environments."""
+readme = "README.md"
+authors = [
+  {name = "James Bruska", email = "bruskatech@protonmail.com"},
+]
+license = "GPL-3.0-or-later"
+keywords = ["conda", "environment", "sharing", "python", "package", "dependency", "data science", "reproducibility"]
