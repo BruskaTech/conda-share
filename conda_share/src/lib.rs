@@ -208,7 +208,7 @@ where
             .collect::<Vec<_>>()
             .join(" ");
         let err_str = String::from_utf8(output.stderr)?;
-        return Err(CondaError::CondaCommandFailed(command_str, err_str.into()));
+        return Err(CondaError::CondaCommandFailed(command_str, err_str));
     }
 
     Ok(output)

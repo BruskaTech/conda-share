@@ -32,7 +32,7 @@ impl OverwriteDialog {
 impl ErrorDialog {
     pub fn show_error(&self, error_msg: &str) {
         self.set_error_msg(error_msg.into());
-        self.show().expect(&format!("Critical Error: Failed to show error message: {}", error_msg));
+        self.show().unwrap_or_else(|_| panic!("Critical Error: Failed to show error message: {}", error_msg));
     }
 }
 
@@ -90,13 +90,10 @@ fn main() -> anyhow::Result<()> {
 
                 // Handle the response
                 let Some(ui) = ui_weak2.upgrade() else { return; };
-                match picked {
-                    Some(file) => {
-                        let path: SharedString =
-                            file.path().display().to_string().into();
-                        ui.set_output_folder(path);
-                    }
-                    None => {} // user canceled; keep existing selection
+                if let Some(file) = picked {
+                    let path: SharedString =
+                        file.path().display().to_string().into();
+                    ui.set_output_folder(path);
                 }
 
                 ui.set_picking(false);
@@ -148,7 +145,7 @@ fn main() -> anyhow::Result<()> {
             let output_path_string: String = overwrite_dialog.get_file_path().into();
             let output_path= Path::new(&output_path_string);
 
-            create_and_save_env(&env_name, &output_path, &error_dialog, &notification_dialog);
+            create_and_save_env(&env_name, output_path, &error_dialog, &notification_dialog);
             
             if let Err(e) = overwrite_dialog.hide() {
                 error_dialog.show_error(&format!("Failed to hide overwrite dialog: {e}"));
@@ -174,7 +171,7 @@ fn main() -> anyhow::Result<()> {
         move || {
             let Some(error_dialog) = ed_weak.upgrade() else { return; };
 
-            error_dialog.hide().expect(&format!("Critical Error: Failed to close error message"));
+            error_dialog.hide().unwrap_or_else(|_| panic!("Critical Error: Failed to close error message"));
         }
     });
 
