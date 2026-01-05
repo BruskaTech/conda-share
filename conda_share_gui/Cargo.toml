@@ -1,0 +1,17 @@
+[package]
+name = "conda_share_gui"
+version = "1.4.0"
+edition = "2024"
+
+[[bin]]
+name = "conda-share-gui"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.100"
+conda_share = { path = "../conda_share" }
+rfd = "0.16.0"
+slint = "1.14.1"
+
+[build-dependencies]
+slint-build = "1.14.1"

@@ -1,0 +1,13 @@
+[package]
+name = "conda_share_cli"
+version = "1.4.0"
+edition = "2024"
+
+[[bin]]
+name = "conda-share"
+path = "src/main.rs"
+
+[dependencies]
+conda_share = { path = "../conda_share" }
+anyhow = "1.0.100"
+clap = { version = "4.5.53", features = ["derive"] }

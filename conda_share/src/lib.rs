@@ -1,3 +1,4 @@
+use core::fmt;
 use std::io::Write;
 use std::path::Path;
 use std::process::{Command, Output};
@@ -16,8 +17,8 @@ pub enum CondaError {
     Json(#[from] serde_json::Error),
     #[error("UTF-8 error: {0}")]
     Utf8(#[from] std::string::FromUtf8Error),
-    #[error("Missing version for package")]
-    MissingVersion,
+    #[error("Missing version for package {0}")]
+    MissingPipVersion(String),
     #[error("Environment '{0}' does not exist. Available environments: {1}")]
     EnvNotFound(String, String),
     #[error("Conda command failed (conda {0}): {1}")]
@@ -28,10 +29,17 @@ pub enum CondaError {
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct CondaEnv {
-    name: String,
-    channels: Vec<String>,
-    conda_deps: Vec<CondaPackage>,
-    pip_deps: Vec<CondaPackage>,
+    pub name: String,
+    pub channels: Vec<String>,
+    pub conda_deps: Vec<CondaPackage>,
+    pub pip_deps: Vec<CondaPackage>,
+}
+
+impl fmt::Display for CondaEnv {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", 
+            self.to_yaml().unwrap_or_else(|_| "Failed to convert to YAML".to_string()))
+    }
 }
 
 impl CondaEnv {
@@ -44,15 +52,21 @@ impl CondaEnv {
         if !self.conda_deps.is_empty() {
             yml.push_str("dependencies:\n");
             for dep in &self.conda_deps {
-                let version = dep.version.clone().ok_or(CondaError::MissingVersion)?;
-                yml.push_str(&format!("  - {}={}\n", dep.name, version));
+                let ver_dep_str = if (dep.version.is_some()) && (dep.build.is_some()) {
+                    format!("={}={}", dep.version.as_ref().expect("Wat?"), dep.build.as_ref().expect("Wat?"))
+                } else if dep.version.is_some() {
+                    format!("={}", dep.version.as_ref().expect("Wat?"))
+                } else {
+                    "".to_string()
+                };
+                yml.push_str(&format!("  - {}{}\n", dep.name, ver_dep_str));
             }
         }
 
         if !self.pip_deps.is_empty() {
             yml.push_str("  - pip:\n");
             for dep in &self.pip_deps {
-                let version = dep.version.clone().ok_or(CondaError::MissingVersion)?;
+                let version = dep.version.clone().ok_or(CondaError::MissingPipVersion(dep.name.clone()))?;
                 yml.push_str(&format!("      - {}=={}\n", dep.name, version));
             }
         }
@@ -75,10 +89,10 @@ impl CondaEnv {
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct CondaPackage {
-    name: String,
-    version: Option<String>,
-    build: Option<String>,
-    channel: Option<String>,
+    pub name: String,
+    pub version: Option<String>,
+    pub build: Option<String>,
+    pub channel: Option<String>,
 }
 
 pub fn env_exists(env_name: &str) -> Result<bool, CondaError> {

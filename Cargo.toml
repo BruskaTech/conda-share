@@ -1,7 +1,8 @@
 [workspace]
 members = [
-    "conda-share-core",
-    "conda-share-cli",
-    "conda-share-gui",
+    "conda_share",
+    "conda_share_cli",
+    "conda_share_gui",
+    "conda_share_py",
 ]
 resolver = "2"

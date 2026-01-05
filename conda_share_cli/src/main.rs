@@ -3,7 +3,7 @@ use anyhow::Ok;
 use std::path::Path;
 use std::io::{self, Write};
 
-use conda_share_core::*;
+use conda_share::*;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]

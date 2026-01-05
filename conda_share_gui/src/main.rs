@@ -4,7 +4,7 @@
 use std::path::Path;
 use slint::SharedString;
 
-use conda_share_core::*;
+use conda_share::*;
 
 slint::include_modules!();
 
