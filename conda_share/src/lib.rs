@@ -200,8 +200,14 @@ impl CondaEnv {
         Ok(yml)
     }
     pub fn save(&self, path: impl AsRef<Path>) -> Result<(), CondaError> {
-        let yml = self.to_yaml()?;
-        if let Some(dir) = path.as_ref().parent()
+        let path_str = path.as_ref().to_string_lossy();
+        let path_str = shellexpand::full(&path_str)
+            .map_err(|e| CondaError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("Failed to expand path '{}': {}", path_str, e),
+            )))?;
+        let path = Path::new(&*path_str);
+        if let Some(dir) = path.parent()
             && !dir.exists()
         {
             return Err(CondaError::Io(std::io::Error::new(
@@ -210,6 +216,7 @@ impl CondaEnv {
             )));
         }
         let mut file = File::create(path)?;
+        let yml = self.to_yaml()?;
         file.write_all(yml.as_bytes())?;
         Ok(())
     }
