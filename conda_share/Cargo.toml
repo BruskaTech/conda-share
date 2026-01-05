@@ -2,6 +2,12 @@
 name = "conda_share"
 version = "2.0.0"
 edition = "2024"
+license = "GPL-3.0-or-later"
+description = "View and share conda environments in rust."
+repository = "https://github.com/BruskaTech/conda-share"
+readme = "README.md"
+keywords = ["conda", "python", "sharing", "reproducibility", "dependency", "package", "data science"]
+categories = ["development-tools"]
 
 [lib]
 name = "conda_share"
