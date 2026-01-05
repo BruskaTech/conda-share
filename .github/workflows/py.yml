@@ -113,11 +113,10 @@ jobs:
     strategy:
       matrix:
         platform:
-          # macos-13 no longer supported by GitHub Actions as of June 2024
-          # - runner: macos-13
-          #   target: x86_64
-          - runner: macos-14
+          - runner: macos-latest
             target: aarch64
+          - runner: macos-15-intel
+            target: x86_64
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
