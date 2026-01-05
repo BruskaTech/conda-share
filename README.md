@@ -139,6 +139,7 @@ python -m ipykernel install --user --name <env_name>
 ### Rust parts
 
 1. Install rust [at this website](https://rust-lang.org/tools/install/).
+    1. You may need to update rust first if it was already installed with `rustup default stable; rustup update`
 1. Run `cargo build -r` in the repo.
 1. Copy the `conda-share` executable from `target/release/conda-share` to your normal executable location.
 1. Run it.
