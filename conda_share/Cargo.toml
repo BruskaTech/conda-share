@@ -7,7 +7,7 @@ description = "View and share conda environments in rust."
 repository = "https://github.com/BruskaTech/conda-share"
 readme = "../README.md"
 authors = ["James Bruska <bruskatech@protonmail.com>"]
-keywords = ["conda", "python", "sharing", "reproducibility", "dependency", "package", "data science"]
+keywords = ["conda", "python", "sharing", "reproducibility", "dependency"]
 categories = ["development-tools"]
 
 [lib]
