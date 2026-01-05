@@ -3,5 +3,5 @@ requires = ["maturin>=1.5"]
 build-backend = "maturin"
 
 [project]
-name = "conda_share_py"
+name = "conda-share"
 dynamic = ["version"]
