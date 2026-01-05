@@ -1,7 +1,7 @@
-use clap::Parser;
 use anyhow::Ok;
-use std::path::Path;
+use clap::Parser;
 use std::io::{self, Write};
+use std::path::Path;
 
 use conda_share::*;
 
@@ -56,7 +56,7 @@ fn main() -> anyhow::Result<()> {
             }
         }
     }
-    
+
     sharable_conda_env.save(output_path)?;
 
     Ok(())

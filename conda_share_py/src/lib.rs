@@ -3,11 +3,11 @@ mod utils;
 
 #[pymodule]
 mod conda_share {
-    use pyo3::prelude::*;
     use pyo3::exceptions::PyRuntimeError;
-    
-    use conda_share as core;
+    use pyo3::prelude::*;
+
     use crate::utils::py_root_dir;
+    use conda_share as core;
 
     use std::collections::HashMap;
     use std::path::PathBuf;
@@ -51,7 +51,7 @@ mod conda_share {
                 self.channel.as_deref().unwrap_or("n/a"),
             )
         }
-    }   
+    }
 
     #[pyclass(module = "conda_share")]
     #[derive(Clone)]
@@ -239,7 +239,6 @@ mod conda_share {
         Ok(PyCondaInfo::from(info))
     }
 
-    
     #[pyfunction]
     fn env_exists(env_name: &str) -> PyResult<bool> {
         core::env_exists(env_name).map_err(to_py_err)
@@ -249,7 +248,9 @@ mod conda_share {
     fn current_env() -> PyResult<String> {
         match core::current_env().map_err(to_py_err)? {
             Some(env) => Ok(env),
-            None => Err(PyRuntimeError::new_err("No conda environment is currently active.")),
+            None => Err(PyRuntimeError::new_err(
+                "No conda environment is currently active.",
+            )),
         }
     }
 
@@ -267,7 +268,7 @@ mod conda_share {
 
     #[pyfunction]
     #[pyo3(signature = (path=None))]
-    fn save_current_env(py: Python<'_>,path: Option<&str>) -> PyResult<()> {
+    fn save_current_env(py: Python<'_>, path: Option<&str>) -> PyResult<()> {
         let env = core::share_current_env().map_err(to_py_err)?;
         let path = match path {
             Some(p) => PathBuf::from(p),
@@ -275,5 +276,4 @@ mod conda_share {
         };
         env.save(path).map_err(to_py_err)
     }
-    
 }

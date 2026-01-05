@@ -1,8 +1,8 @@
 // Prevent console window in addition to Slint window in Windows release builds when, e.g., starting the app via file manager. Ignored on other platforms.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::path::Path;
 use slint::SharedString;
+use std::path::Path;
 
 use conda_share::*;
 
@@ -32,7 +32,12 @@ impl OverwriteDialog {
 impl ErrorDialog {
     pub fn show_error(&self, error_msg: &str) {
         self.set_error_msg(error_msg.into());
-        self.show().unwrap_or_else(|_| panic!("Critical Error: Failed to show error message: {}", error_msg));
+        self.show().unwrap_or_else(|_| {
+            panic!(
+                "Critical Error: Failed to show error message: {}",
+                error_msg
+            )
+        });
     }
 }
 
@@ -43,7 +48,12 @@ impl NotificationDialog {
     }
 }
 
-fn create_and_save_env(env_name: &str, output_path: &Path, error_dialog: &ErrorDialog, notification_dialog: &NotificationDialog) {
+fn create_and_save_env(
+    env_name: &str,
+    output_path: &Path,
+    error_dialog: &ErrorDialog,
+    notification_dialog: &NotificationDialog,
+) {
     let sharable_conda_env = match share_env(env_name) {
         Ok(env) => env,
         Err(e) => {
@@ -74,7 +84,9 @@ fn main() -> anyhow::Result<()> {
     ui.on_pick_folder({
         let ui_weak = ui.as_weak();
         move || {
-            let Some(ui) = ui_weak.upgrade() else { return; };
+            let Some(ui) = ui_weak.upgrade() else {
+                return;
+            };
 
             ui.set_picking(true);
 
@@ -89,15 +101,17 @@ fn main() -> anyhow::Result<()> {
                     .await;
 
                 // Handle the response
-                let Some(ui) = ui_weak2.upgrade() else { return; };
+                let Some(ui) = ui_weak2.upgrade() else {
+                    return;
+                };
                 if let Some(file) = picked {
-                    let path: SharedString =
-                        file.path().display().to_string().into();
+                    let path: SharedString = file.path().display().to_string().into();
                     ui.set_output_folder(path);
                 }
 
                 ui.set_picking(false);
-            }).ok();
+            })
+            .ok();
         }
     });
 
@@ -107,10 +121,18 @@ fn main() -> anyhow::Result<()> {
         let ed_weak = error_dialog.as_weak();
         let nd_weak = notification_dialog.as_weak();
         move || {
-            let Some(ui) = ui_weak.upgrade() else { return; };
-            let Some(overwrite_dialog) = od_weak.upgrade() else { return; };
-            let Some(error_dialog) = ed_weak.upgrade() else { return; };
-            let Some(notification_dialog) = nd_weak.upgrade() else { return; };
+            let Some(ui) = ui_weak.upgrade() else {
+                return;
+            };
+            let Some(overwrite_dialog) = od_weak.upgrade() else {
+                return;
+            };
+            let Some(error_dialog) = ed_weak.upgrade() else {
+                return;
+            };
+            let Some(notification_dialog) = nd_weak.upgrade() else {
+                return;
+            };
 
             let env_name: String = ui.get_selected_env().into();
             let folder_path: String = ui.get_output_folder().into();
@@ -137,16 +159,22 @@ fn main() -> anyhow::Result<()> {
         let ed_weak = error_dialog.as_weak();
         let nd_weak = notification_dialog.as_weak();
         move || {
-            let Some(overwrite_dialog) = od_weak.upgrade() else { return; };
-            let Some(error_dialog) = ed_weak.upgrade() else { return; };
-            let Some(notification_dialog) = nd_weak.upgrade() else { return; };
+            let Some(overwrite_dialog) = od_weak.upgrade() else {
+                return;
+            };
+            let Some(error_dialog) = ed_weak.upgrade() else {
+                return;
+            };
+            let Some(notification_dialog) = nd_weak.upgrade() else {
+                return;
+            };
 
             let env_name: String = overwrite_dialog.get_env_name().into();
             let output_path_string: String = overwrite_dialog.get_file_path().into();
-            let output_path= Path::new(&output_path_string);
+            let output_path = Path::new(&output_path_string);
 
             create_and_save_env(&env_name, output_path, &error_dialog, &notification_dialog);
-            
+
             if let Err(e) = overwrite_dialog.hide() {
                 error_dialog.show_error(&format!("Failed to hide overwrite dialog: {e}"));
             }
@@ -157,8 +185,12 @@ fn main() -> anyhow::Result<()> {
         let od_weak = overwrite_dialog.as_weak();
         let ed_weak = error_dialog.as_weak();
         move || {
-            let Some(overwrite_dialog) = od_weak.upgrade() else { return; };
-            let Some(error_dialog) = ed_weak.upgrade() else { return; };
+            let Some(overwrite_dialog) = od_weak.upgrade() else {
+                return;
+            };
+            let Some(error_dialog) = ed_weak.upgrade() else {
+                return;
+            };
 
             if let Err(e) = overwrite_dialog.hide() {
                 error_dialog.show_error(&format!("Failed to hide overwrite dialog: {e}"));
@@ -169,9 +201,13 @@ fn main() -> anyhow::Result<()> {
     error_dialog.on_close_clicked({
         let ed_weak = error_dialog.as_weak();
         move || {
-            let Some(error_dialog) = ed_weak.upgrade() else { return; };
+            let Some(error_dialog) = ed_weak.upgrade() else {
+                return;
+            };
 
-            error_dialog.hide().unwrap_or_else(|_| panic!("Critical Error: Failed to close error message"));
+            error_dialog
+                .hide()
+                .unwrap_or_else(|_| panic!("Critical Error: Failed to close error message"));
         }
     });
 
@@ -179,8 +215,12 @@ fn main() -> anyhow::Result<()> {
         let nd_weak = notification_dialog.as_weak();
         let ed_weak = error_dialog.as_weak();
         move || {
-            let Some(notification_dialog) = nd_weak.upgrade() else { return; };
-            let Some(error_dialog) = ed_weak.upgrade() else { return; };
+            let Some(notification_dialog) = nd_weak.upgrade() else {
+                return;
+            };
+            let Some(error_dialog) = ed_weak.upgrade() else {
+                return;
+            };
 
             if let Err(e) = notification_dialog.hide() {
                 error_dialog.show_error(&format!("Failed to hide notification dialog: {e}"));
@@ -197,10 +237,13 @@ fn main() -> anyhow::Result<()> {
             return Ok(error_dialog.run()?);
         }
     };
-    
+
     let ui_env_list = env_list
-        .iter().map(|e| e.into()).collect::<Vec<slint::SharedString>>()
-        .as_slice().into();
+        .iter()
+        .map(|e| e.into())
+        .collect::<Vec<slint::SharedString>>()
+        .as_slice()
+        .into();
     ui.set_conda_envs(ui_env_list);
 
     Ok(ui.run()?)

@@ -4,7 +4,7 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::ffi::c_str;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-    
+
 pub fn py_root_dir(py: Python<'_>) -> PyResult<PathBuf> {
     let locals = PyDict::new(py);
 
@@ -17,6 +17,6 @@ pub fn py_root_dir(py: Python<'_>) -> PyResult<PathBuf> {
     let root = locals
         .get_item("ROOT")?
         .ok_or_else(|| PyRuntimeError::new_err("ROOT not set by python snippet"))?;
-    
+
     root.extract::<PathBuf>()
 }
