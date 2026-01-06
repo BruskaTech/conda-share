@@ -131,7 +131,7 @@ mod conda_share {
         #[pyo3(get)]
         conda_prefix: String,
         #[pyo3(get)]
-        conda_shlvl: u64,
+        conda_shlvl: i64,
         #[pyo3(get)]
         conda_version: String,
         #[pyo3(get)]

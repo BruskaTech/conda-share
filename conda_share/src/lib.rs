@@ -245,7 +245,7 @@ pub struct CondaInfo {
     pub conda_env_version: String,
     pub conda_location: String,
     pub conda_prefix: String,
-    pub conda_shlvl: u64,
+    pub conda_shlvl: i64,
     pub conda_version: String,
     pub default_prefix: String,
     pub env_vars: HashMap<String, String>,
