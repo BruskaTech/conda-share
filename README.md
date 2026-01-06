@@ -60,19 +60,30 @@ There are two different executables for each OS:
 
 ### CLI version
 
+Download it, unzip it, and use it.
+
+The exception is of course MacOS with it's extra security settings. Since the app built in github actions is not a signed release, you will need to let MacOS know that the app is safe to run by running the following command:
+
+```bash
+# Make sure to replace <path_to_file> with the path to your downloaded and unzipped conda-share-gui file.
+xattr -d com.apple.quarantine <path_to_file>/conda-share
+```
+
+Here are some examples on how to use it.
+
 ```bash
 # Export environment to a file with the same name as the environment
-conda-share <env_name>
+./conda-share <env_name>
 # ex: conda-share test_env
 # creates test_env.yml in the current folder
 
 # Export environment to a file with a different location/name
-conda-share <env_name> -p <new_file_path>
+./conda-share <env_name> -p <new_file_path>
 # ex: conda-share test_env -p ~/my_envs/env.yml
 # creates my_test_env.yml inside the ~/my_envs folder
 
 # Export environment and just display it to the screen
-conda-share <env_name> -d
+./conda-share <env_name> -d
 # ex: conda-share test_env -d
 # outputs the test_env yaml to screen
 ```
@@ -81,7 +92,7 @@ conda-share <env_name> -d
 
 Download it, unzip it, and use it.
 
-The exception is of course MacOS with it's extra security settings. Since the app built in github actions is not a signed release, you will need to let MacOS know that the app is safe to run by running the following command:
+The exception is of course MacOS (again) with it's extra security settings. Since the app built in github actions is not a signed release, you will need to let MacOS know that the app is safe to run by running the following command:
 
 ```bash
 # Make sure to replace <path_to_file> with the path to your downloaded and unzipped conda-share-gui file.
