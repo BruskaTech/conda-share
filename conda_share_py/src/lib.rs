@@ -27,6 +27,8 @@ mod conda_share {
         build: Option<String>,
         #[pyo3(get)]
         channel: Option<String>,
+        #[pyo3(get)]
+        version_requirements: Option<String>,
     }
 
     impl From<core::CondaPackage> for PyCondaPackage {
@@ -36,6 +38,7 @@ mod conda_share {
                 version: p.version,
                 build: p.build,
                 channel: p.channel,
+                version_requirements: p.version_requirements,
             }
         }
     }
@@ -44,11 +47,12 @@ mod conda_share {
     impl PyCondaPackage {
         fn __repr__(&self) -> String {
             format!(
-                "CondaPackage(name={}, version={}, build={}, channel={})",
+                "CondaPackage(name={}, version={}, build={}, channel={}, version_requirements={})",
                 self.name,
                 self.version.as_deref().unwrap_or("n/a"),
                 self.build.as_deref().unwrap_or("n/a"),
                 self.channel.as_deref().unwrap_or("n/a"),
+                self.version_requirements.as_deref().unwrap_or("n/a"),
             )
         }
     }

@@ -182,6 +182,13 @@ impl CondaEnv {
                 } else {
                     "".to_string()
                 };
+
+                let ver_dep_str = if let Some(reqs) = &dep.version_requirements {
+                    format!("[version='{}']", reqs)
+                } else {
+                    ver_dep_str
+                };
+
                 yml.push_str(&format!("  - {}{}\n", dep.name, ver_dep_str));
             }
         }
@@ -229,6 +236,7 @@ pub struct CondaPackage {
     pub version: Option<String>,
     pub build: Option<String>,
     pub channel: Option<String>,
+    pub version_requirements: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
@@ -388,20 +396,21 @@ pub fn conda_env_export(env_name: &str, from_history: bool) -> Result<CondaEnv, 
                 let parts = s.split("[version='").collect::<Vec<_>>();
 
                 if parts.len() > 1 {
-                    let name = parts[0].to_string();
-                    let version = parts[1].trim_end_matches("']'").to_string();
+                    let name = parts[0].trim().to_string();
+                    let version_requirements = parts[1].trim().trim_end_matches("']").to_string();
 
                     return CondaPackage {
                         name,
-                        version: Some(version),
+                        version: None,
                         build: None,
                         channel: None,
+                        version_requirements: Some(version_requirements),
                     };
                 } else {
                     let mut parts = s.split("=");
-                    let name = parts.next().unwrap_or("").to_string();
-                    let version = parts.next().map(|s| s.to_string());
-                    let build = parts.next().map(|s| s.to_string());
+                    let name = parts.next().unwrap_or("").trim().to_string();
+                    let version = parts.next().map(|s| s.trim().to_string());
+                    let build = parts.next().map(|s| s.trim().to_string());
                     let channel = None;
 
                     CondaPackage {
@@ -409,6 +418,7 @@ pub fn conda_env_export(env_name: &str, from_history: bool) -> Result<CondaEnv, 
                         version,
                         build,
                         channel,
+                        version_requirements: None,
                     }
                 }
             })
@@ -434,6 +444,7 @@ pub fn conda_list(env_name: &str) -> Result<Vec<CondaPackage>, CondaError> {
             version: e.version,
             build: e.build,
             channel: e.channel,
+            version_requirements: e.version_requirements,
         })
         .collect();
 
