@@ -28,8 +28,18 @@ jobs:
             shell: bash
             script: ./scripts/build_and_package_unix.sh
 
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            shell: bash
+            script: ./scripts/build_and_package_unix.sh
+
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+            shell: pwsh
+            script: ./scripts/build_and_package_windows.ps1
+
+          - os: windows-11-arm
+            target: aarch64-pc-windows-msvc
             shell: pwsh
             script: ./scripts/build_and_package_windows.ps1
 

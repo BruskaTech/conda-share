@@ -208,6 +208,7 @@ impl CondaEnv {
             )))?;
         let path = Path::new(&*path_str);
         if let Some(dir) = path.parent()
+            && dir.to_str() != Some("")
             && !dir.exists()
         {
             return Err(CondaError::Io(std::io::Error::new(
@@ -384,16 +385,31 @@ pub fn conda_env_export(env_name: &str, from_history: bool) -> Result<CondaEnv, 
         .iter()
         .filter_map(|dep| {
             dep.as_str().map(|s| {
-                let mut parts = s.split("=");
-                let name = parts.next().unwrap_or("").to_string();
-                let version = parts.next().map(|s| s.to_string());
-                let build = parts.next().map(|s| s.to_string());
-                let channel = None;
-                CondaPackage {
-                    name,
-                    version,
-                    build,
-                    channel,
+                let parts = s.split("[version='").collect::<Vec<_>>();
+
+                if parts.len() > 1 {
+                    let name = parts[0].to_string();
+                    let version = parts[1].trim_end_matches("']'").to_string();
+
+                    return CondaPackage {
+                        name,
+                        version: Some(version),
+                        build: None,
+                        channel: None,
+                    };
+                } else {
+                    let mut parts = s.split("=");
+                    let name = parts.next().unwrap_or("").to_string();
+                    let version = parts.next().map(|s| s.to_string());
+                    let build = parts.next().map(|s| s.to_string());
+                    let channel = None;
+
+                    CondaPackage {
+                        name,
+                        version,
+                        build,
+                        channel,
+                    }
                 }
             })
         })
